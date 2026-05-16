@@ -130,7 +130,7 @@ WeatherClock/
 
 ```bash
 # 克隆项目
-git clone https://github.com/YOUR_USERNAME/WeatherClock.git
+git clone https://github.com/stevenliuit/DeskWeather.git
 cd WeatherClock
 
 # 编译 Debug APK（全架构）
