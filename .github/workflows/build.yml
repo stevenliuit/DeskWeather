@@ -1,0 +1,73 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  JAVA_VERSION: '17'
+  ANDROID_COMPILE_SDK: '36'
+  ANDROID_BUILD_TOOLS: '36.0.0'
+
+jobs:
+  build:
+    name: Build WeatherClock APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          compile-sdk: ${{ env.ANDROID_COMPILE_SDK }}
+          build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build debug APKs (all architectures)
+        run: |
+          ./gradlew assembleDebug \
+            --no-daemon \
+            --stacktrace
+
+      - name: Upload debug APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: weatherclock-debug-apks
+          path: |
+            app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+            app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk
+            app/build/outputs/apk/debug/app-x86-debug.apk
+            app/build/outputs/apk/debug/app-x86_64-debug.apk
+            app/build/outputs/apk/debug/app-universal-debug.apk
+          retention-days: 14
+
+      - name: Upload build reports (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports
+          path: app/build/reports/
+          retention-days: 7
