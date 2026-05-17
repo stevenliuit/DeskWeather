@@ -13,9 +13,11 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult as GmsLocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -98,7 +100,17 @@ object LocationProvider {
 
             fusedClient.requestLocationUpdates(locationRequest, callback, Looper.getMainLooper())
 
+            // Hard timeout: if no location within 20 seconds, give up
+            val timeoutJob = kotlinx.coroutines.GlobalScope.launch {
+                kotlinx.coroutines.delay(20_000L)
+                if (continuation.isActive) {
+                    fusedClient.removeLocationUpdates(callback)
+                    continuation.resume(null)
+                }
+            }
+
             continuation.invokeOnCancellation {
+                timeoutJob.cancel()
                 fusedClient.removeLocationUpdates(callback)
             }
         }

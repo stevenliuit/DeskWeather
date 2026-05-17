@@ -501,14 +501,27 @@ private fun LeftPanel(
     var showThemeSheet by remember { mutableStateOf(false) }
     var showAirQualitySheet by remember { mutableStateOf(false) }
 
+    // Read widget visibility from layoutConfig
+    val leftZoneWidgets = uiState.layoutConfig.zones.find { it.id == "left" }?.widgets ?: emptyList()
+    val clockVisible = leftZoneWidgets.find { it.type == "CLOCK" }?.visible ?: true
+    val dateVisible = leftZoneWidgets.find { it.type == "DATE" }?.visible ?: true
+    val locationVisible = leftZoneWidgets.find { it.type == "LOCATION" }?.visible ?: true
+    val temperatureVisible = leftZoneWidgets.find { it.type == "TEMPERATURE" }?.visible ?: true
+    val detailsVisible = leftZoneWidgets.find { it.type == "DETAILS" }?.visible ?: true
+    val airQualityVisible = leftZoneWidgets.find { it.type == "AIR_QUALITY" }?.visible ?: true
+
     Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
         // 顶部：日期/时间
         Column {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column {
-                    Text(uiState.currentDate, fontSize = 18.sp, color = colors.textSecondary)
-                    Spacer(Modifier.height(4.dp))
-                    Text(uiState.currentTime, fontSize = 68.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+                    if (dateVisible) {
+                        Text(uiState.currentDate, fontSize = 18.sp, color = colors.textSecondary)
+                        Spacer(Modifier.height(4.dp))
+                    }
+                    if (clockVisible) {
+                        Text(uiState.currentTime, fontSize = 68.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+                    }
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     ThemeButton(colors = colors, onClick = { showThemeSheet = true })
@@ -521,38 +534,47 @@ private fun LeftPanel(
                 }
             }
             Spacer(Modifier.height(6.dp))
-            Text(uiState.timezoneDisplay, fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.6f))
+            if (locationVisible) {
+                Text(uiState.timezoneDisplay, fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.6f))
+            }
         }
 
         // 底部：天气主信息
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("📍", fontSize = 22.sp)
-                Spacer(Modifier.width(6.dp))
-                Text(uiState.locationName, fontSize = 30.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+            if (locationVisible) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("📍", fontSize = 22.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Text(uiState.locationName, fontSize = 30.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                }
+                Spacer(Modifier.height(20.dp))
             }
-            Spacer(Modifier.height(20.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(uiState.weatherIcon, fontSize = 80.sp)
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(uiState.temperature, fontSize = 68.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
-                    Text("${uiState.weatherDescription} ${uiState.feelsLike}", fontSize = 16.sp, color = colors.textSecondary)
+            if (temperatureVisible) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(uiState.weatherIcon, fontSize = 80.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(uiState.temperature, fontSize = 68.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                        Text("${uiState.weatherDescription} ${uiState.feelsLike}", fontSize = 16.sp, color = colors.textSecondary)
+                    }
+                }
+                Spacer(Modifier.height(28.dp))
+            }
+            if (detailsVisible) {
+                Row(horizontalArrangement = Arrangement.spacedBy(36.dp)) {
+                    WeatherDetailItem(emoji = "💧", label = "湿度", value = uiState.humidity, colors = colors)
+                    WeatherDetailItem(emoji = "💨", label = "风速", value = uiState.windSpeed, colors = colors)
                 }
             }
-            Spacer(Modifier.height(28.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(36.dp)) {
-                WeatherDetailItem(emoji = "💧", label = "湿度", value = uiState.humidity, colors = colors)
-                WeatherDetailItem(emoji = "💨", label = "风速", value = uiState.windSpeed, colors = colors)
-                // 空气质量快捷入口
-                if (uiState.airQuality != null) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { showAirQualitySheet = true }) {
-                        Text("🫁", fontSize = 26.sp)
-                        Spacer(Modifier.height(4.dp))
-                        Text("空气", fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.8f))
-                        Spacer(Modifier.height(2.dp))
-                        Text(uiState.airQuality!!.value, fontSize = 18.sp, color = Color(uiState.airQuality!!.color), fontWeight = FontWeight.SemiBold)
-                    }
+            // 空气质量快捷入口
+            if (airQualityVisible && uiState.airQuality != null) {
+                if (detailsVisible) Spacer(Modifier.height(4.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { showAirQualitySheet = true }) {
+                    Text("🫁", fontSize = 26.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text("空气", fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.8f))
+                    Spacer(Modifier.height(2.dp))
+                    Text(uiState.airQuality!!.value, fontSize = 18.sp, color = Color(uiState.airQuality!!.color), fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -759,9 +781,15 @@ private fun RightPanel(
 ) {
     Column(modifier = modifier.fillMaxHeight()) {
         // 工具栏
+        val rightZoneWidgets = uiState.layoutConfig.zones.find { it.id == "right" }?.widgets ?: emptyList()
+        val forecastVisible = rightZoneWidgets.find { it.type == "FORECAST_7D" }?.visible ?: true
+        val locationBtnVisible = rightZoneWidgets.find { it.type == "LOCATION" }?.visible ?: true
+
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            LocationButton(isLocating = uiState.isLocating, useMyLocation = uiState.useMyLocationEnabled, onClick = onLocationRequest, colors = colors)
-            Spacer(Modifier.width(10.dp))
+            if (locationBtnVisible) {
+                LocationButton(isLocating = uiState.isLocating, useMyLocation = uiState.useMyLocationEnabled, onClick = onLocationRequest, colors = colors)
+                Spacer(Modifier.width(10.dp))
+            }
             Surface(modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onSearchOpen), color = colors.cardHighlight, shape = RoundedCornerShape(16.dp)) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("🔍", fontSize = 18.sp); Spacer(Modifier.width(8.dp)); Text("搜索城市", fontSize = 14.sp, color = colors.textPrimary)
@@ -788,26 +816,28 @@ private fun RightPanel(
             }
         }
 
-        Spacer(Modifier.height(10.dp))
-        Row(modifier = Modifier.padding(bottom = 12.dp)) {
-            Text("📅", fontSize = 16.sp); Spacer(Modifier.width(6.dp))
-            Text("七日天气预报", fontSize = 16.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
-        }
+        if (forecastVisible) {
+            Spacer(Modifier.height(10.dp))
+            Row(modifier = Modifier.padding(bottom = 12.dp)) {
+                Text("📅", fontSize = 16.sp); Spacer(Modifier.width(6.dp))
+                Text("七日天气预报", fontSize = 16.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
+            }
 
-        // Use LazyRow so 7 days scroll horizontally instead of being squished
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            contentPadding = PaddingValues(end = 8.dp)
-        ) {
-            items(uiState.forecast.size) { index ->
-                val forecast = uiState.forecast[index]
-                ForecastCard(
-                    item = forecast,
-                    isToday = index == 0,
-                    colors = colors,
-                    modifier = Modifier.width(80.dp)
-                )
+            // Use LazyRow so 7 days scroll horizontally instead of being squished
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(end = 8.dp)
+            ) {
+                items(uiState.forecast.size) { index ->
+                    val forecast = uiState.forecast[index]
+                    ForecastCard(
+                        item = forecast,
+                        isToday = index == 0,
+                        colors = colors,
+                        modifier = Modifier.width(80.dp)
+                    )
+                }
             }
         }
     }

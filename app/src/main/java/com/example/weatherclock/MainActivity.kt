@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
             val viewModel: MainScreenViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsState()
 
-            WeatherClockTheme {
+            WeatherClockTheme(themeColors = uiState.themeColors) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = uiState.themeColors.surfaceColor

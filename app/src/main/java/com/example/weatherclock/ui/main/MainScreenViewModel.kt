@@ -462,24 +462,56 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         _uiState.value = _uiState.value.copy(isLocating = true, locationDenied = false, useMyLocationEnabled = true)
         locatingJob = viewModelScope.launch {
             val ctx = getApplication<Application>()
+
+            // Helper to process location result
+            fun processLocationResult(lat: Double, lon: Double, source: String) {
+                onLocationReceived(lat, lon, source)
+            }
+
             try {
-                val location = withTimeoutOrNull(10_000L) {
+                // Step 1: Try current location with 15-second timeout
+                val location = withTimeoutOrNull(15_000L) {
                     LocationProvider.getCurrentLocation(ctx)
-                } ?: LocationProvider.getLastKnownLocation(ctx)
+                }
 
                 if (location != null) {
-                    onLocationReceived(location.latitude, location.longitude, location.source)
-                } else {
-                    // No location available — stop spinner
-                    _uiState.value = _uiState.value.copy(isLocating = false)
+                    processLocationResult(location.latitude, location.longitude, location.source)
+                    return@launch
                 }
+
+                // Step 2: No GPS fix yet — try last known location
+                val lastLocation = LocationProvider.getLastKnownLocation(ctx)
+                if (lastLocation != null) {
+                    // Use last known but note it's stale
+                    processLocationResult(lastLocation.latitude, lastLocation.longitude, lastLocation.source + " (缓存)")
+                    return@launch
+                }
+
+                // Step 3: No location available at all
+                _uiState.value = _uiState.value.copy(
+                    isLocating = false,
+                    error = "无法获取位置，请检查定位服务是否开启"
+                )
+
             } catch (e: Exception) {
-                // Fallback: try last known
-                val last = LocationProvider.getLastKnownLocation(getApplication())
-                if (last != null) {
-                    onLocationReceived(last.latitude, last.longitude, last.source)
-                } else {
-                    _uiState.value = _uiState.value.copy(isLocating = false, locationDenied = true)
+                // Step 4: Exception — last resort fallback
+                try {
+                    val last = withTimeoutOrNull(3_000L) {
+                        LocationProvider.getLastKnownLocation(getApplication())
+                    }
+                    if (last != null) {
+                        processLocationResult(last.latitude, last.longitude, last.source + " (缓存)")
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLocating = false,
+                            error = "定位失败，请检查GPS或稍后重试"
+                        )
+                    }
+                } catch (e2: Exception) {
+                    _uiState.value = _uiState.value.copy(
+                        isLocating = false,
+                        error = "定位服务异常，请手动选择城市"
+                    )
                 }
             }
         }
