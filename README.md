@@ -60,6 +60,8 @@
 
 ### 主界面预览
 
+![主界面预览](docs/screenshots/screenshot_main.png)
+
 | 左面板（时钟/天气） | 右面板（7日预报） |
 |:---:|:---:|
 | ![Left Panel](docs/screenshots/screenshot_left_panel.png) | ![Right Panel](docs/screenshots/screenshot_right_panel.png) |
