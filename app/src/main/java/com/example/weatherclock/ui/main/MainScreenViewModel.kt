@@ -395,6 +395,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         Collections.swap(widgets, fromIndex, toIndex)
         zones[zoneIndex] = WidgetZone(zoneId, widgets)
         val newConfig = LayoutConfig(zones = zones)
+        _uiState.value = _uiState.value.copy(layoutConfig = newConfig)
         saveLayoutConfig(newConfig)
     }
 
@@ -409,7 +410,9 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
             if (w.type == widgetType) w.copy(visible = !w.visible) else w
         }
         zones[zoneIndex] = WidgetZone(zoneId, widgets)
-        saveLayoutConfig(LayoutConfig(zones = zones))
+        val newConfig = LayoutConfig(zones = zones)
+        _uiState.value = _uiState.value.copy(layoutConfig = newConfig)
+        saveLayoutConfig(newConfig)
     }
 
     fun setEditingZone(zone: String) {
@@ -450,6 +453,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
             ))
             else -> return
         }
+        _uiState.value = _uiState.value.copy(layoutConfig = config)
         saveLayoutConfig(config)
     }
 
