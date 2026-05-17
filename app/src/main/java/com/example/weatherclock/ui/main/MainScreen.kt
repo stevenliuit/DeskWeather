@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -220,15 +221,23 @@ fun MainScreen(
 
         // ── 装饰光晕 ──
         Box(
-            modifier = Modifier.fillMaxSize().align(Alignment.TopEnd)
-                .padding(top = (-100).dp, end = (-150).dp).size(400.dp).clip(CircleShape)
+            modifier = Modifier
+                .fillMaxSize()
+                .align(Alignment.TopEnd)
+                .offset(x = (-150).dp, y = (-100).dp)
+                .size(400.dp)
+                .clip(CircleShape)
                 .background(brush = Brush.radialGradient(
                     colors = listOf(colors.accentColor.copy(alpha = 0.12f), Color.Transparent)
                 ))
         )
         Box(
-            modifier = Modifier.fillMaxSize().align(Alignment.BottomStart)
-                .padding(bottom = (-200).dp, start = (-100).dp).size(350.dp).clip(CircleShape)
+            modifier = Modifier
+                .fillMaxSize()
+                .align(Alignment.BottomStart)
+                .offset(x = (-100).dp, y = (-200).dp)
+                .size(350.dp)
+                .clip(CircleShape)
                 .background(brush = Brush.radialGradient(
                     colors = listOf(colors.accentColor.copy(alpha = 0.08f), Color.Transparent)
                 ))
@@ -242,6 +251,7 @@ fun MainScreen(
             }
         } else {
             MainContent(
+                viewModel = viewModel,
                 uiState = uiState, colors = colors,
                 onCitySelect = { idx -> viewModel.selectCity(idx); onLocationChange(idx) },
                 onThemeCycle = { viewModel.cycleTheme() },
@@ -265,6 +275,7 @@ fun MainScreen(
                 onMoveWidget = { z, f, t -> viewModel.moveWidget(z, f, t) },
                 onToggleWidgetVisibility = { z, w -> viewModel.toggleWidgetVisibility(z, w) },
                 onSetEditingZone = { viewModel.setEditingZone(it) },
+                onApplyTemplate = { viewModel.applyTemplate(it) },
                 airQualityData = viewModel.getAirQualityData(),
             )
         }
@@ -276,6 +287,7 @@ fun MainScreen(
 // ============================================================
 @Composable
 private fun MainContent(
+    viewModel: MainScreenViewModel,
     uiState: MainUiState, colors: ThemeColors,
     onCitySelect: (Int) -> Unit, onThemeCycle: () -> Unit,
     onLocationRequest: () -> Unit, onLocationDeniedDismiss: () -> Unit,
@@ -285,11 +297,11 @@ private fun MainContent(
     onToggleFavorite: (WeatherLocation) -> Unit, onTogglePin: (WeatherLocation) -> Unit,
     onIsFavorite: (WeatherLocation) -> Boolean, onIsPinned: (WeatherLocation) -> Boolean,
     onMoveWidget: (String, Int, Int) -> Unit, onToggleWidgetVisibility: (String, String) -> Unit,
-    onSetEditingZone: (String) -> Unit,
+    onSetEditingZone: (String) -> Unit, onApplyTemplate: (String) -> Unit,
     airQualityData: AirQualityData?,
 ) {
     when {
-        uiState.showLayoutEditor -> LayoutEditorScreen(uiState, colors, onToggleLayoutEditor, onMoveWidget, onToggleWidgetVisibility, onSetEditingZone)
+        uiState.showLayoutEditor -> LayoutEditorScreen(uiState, colors, onToggleLayoutEditor, onMoveWidget, onToggleWidgetVisibility, onSetEditingZone, onApplyTemplate)
         uiState.isSearchMode -> SearchScreen(
             uiState, colors, onSearchQueryChange, onSearchFocus,
             onCitySelectedFromSearch, onPinyinNavClick,
@@ -300,10 +312,11 @@ private fun MainContent(
             horizontalArrangement = Arrangement.spacedBy(28.dp)
         ) {
             LeftPanel(Modifier.weight(1f), uiState, colors, onThemeCycle, onThemeSelected, airQualityData)
+            val handleSearchOpen = { viewModel.onSearchOpen() }
             RightPanel(
                 Modifier.weight(1.35f), uiState, colors,
                 onCitySelect, onLocationRequest,
-                onSearchClick = { onSearchQueryChange("") },
+                onSearchOpen = handleSearchOpen,
                 onPinyinNavClick = onPinyinNavClick,
                 onLayoutEditorClick = onToggleLayoutEditor,
             )
@@ -393,18 +406,35 @@ private fun SectionHeader(text: String, colors: ThemeColors) {
 private fun SearchBar(query: String, colors: ThemeColors, onQueryChange: (String) -> Unit, onFocusChange: (Boolean) -> Unit) {
     Surface(color = colors.cardHighlight, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("🔍", fontSize = 20.sp)
+            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                Text("🔍", fontSize = 20.sp)
+            }
             Spacer(Modifier.width(10.dp))
-            BasicTextField(
-                value = query, onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
-                textStyle = TextStyle(color = colors.textPrimary, fontSize = 18.sp),
-                singleLine = true,
-                decorationBox = { innerTextField ->
-                    Box { if (query.isEmpty()) Text("搜索城市（中文/拼音/首字母）...", color = colors.textSecondary, fontSize = 18.sp); innerTextField() }
-                },
-            )
-            if (query.isNotEmpty()) Text("✕", fontSize = 18.sp, color = colors.textSecondary, modifier = Modifier.clickable { onQueryChange("") })
+            Box(Modifier.weight(1f)) {
+                BasicTextField(
+                    value = query, onValueChange = onQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(color = colors.textPrimary, fontSize = 17.sp),
+                    singleLine = true,
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (query.isEmpty()) Text("搜索城市（中文/拼音/首字母）...", color = colors.textSecondary.copy(alpha = 0.7f), fontSize = 17.sp)
+                            innerTextField()
+                        }
+                    },
+                )
+            }
+            if (query.isNotEmpty()) {
+                Surface(modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onQueryChange("") },
+                    color = colors.textSecondary.copy(alpha = 0.3f), shape = CircleShape
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text("✕", fontSize = 12.sp, color = colors.textPrimary)
+                    }
+                }
+            }
         }
     }
 }
@@ -533,25 +563,61 @@ private fun LeftPanel(
         BottomSheetScaffold(
             sheetContent = {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text("🎨 选择主题", fontSize = 20.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🎨", fontSize = 24.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("选择主题", fontSize = 22.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("当前：${colors.name}", fontSize = 13.sp, color = colors.textSecondary)
                     Spacer(Modifier.height(16.dp))
                     ThemeDefinitions.themeList().forEach { (theme, tc) ->
+                        val isSelected = colors.name == tc.name
                         Surface(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onThemeSelected(theme); showThemeSheet = false },
-                            color = if (colors.name == tc.name) tc.accentColor.copy(alpha = 0.2f) else tc.cardHighlight,
-                            shape = RoundedCornerShape(12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable { onThemeSelected(theme); showThemeSheet = false },
+                            color = if (isSelected) tc.accentColor.copy(alpha = 0.2f) else tc.cardHighlight,
+                            shape = RoundedCornerShape(14.dp),
+                            border = if (isSelected) BorderStroke(2.dp, tc.accentColor) else null,
                         ) {
-                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(Modifier.size(32.dp).clip(CircleShape).background(Brush.linearGradient(listOf(tc.topGradient, tc.bottomGradient))))
+                            Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                // 主题色渐变预览
+                                Box(
+                                    Modifier
+                                        .size(44.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Brush.linearGradient(listOf(tc.topGradient, tc.bottomGradient)))
+                                ) {
+                                    if (isSelected) Box(Modifier.align(Alignment.Center).size(18.dp).background(Color.White.copy(alpha = 0.9f), CircleShape))
+                                }
                                 Spacer(Modifier.width(14.dp))
-                                Column {
-                                    Text(theme.displayName, fontSize = 16.sp, color = tc.textPrimary, fontWeight = FontWeight.Medium)
+                                Column(Modifier.weight(1f)) {
+                                    Text(theme.displayName, fontSize = 16.sp, color = tc.textPrimary, fontWeight = FontWeight.SemiBold)
                                     Text(theme.description, fontSize = 12.sp, color = tc.textSecondary)
+                                }
+                                if (isSelected) {
+                                    Surface(color = tc.accentColor, shape = CircleShape) {
+                                        Text("✓", fontSize = 14.sp, color = Color.White, modifier = Modifier.padding(4.dp))
+                                    }
                                 }
                             }
                         }
                     }
-                    Spacer(Modifier.height(32.dp))
+                    Spacer(Modifier.height(24.dp))
+                    // 自动主题说明
+                    Surface(color = colors.cardHighlight, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("💡", fontSize = 18.sp)
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text("自动切换", fontSize = 14.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                                Text("根据白天/黑夜自动切换日间/夜间主题", fontSize = 12.sp, color = colors.textSecondary)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(24.dp))
                 }
             },
             containerColor = colors.surfaceColor,
@@ -658,14 +724,14 @@ private fun levelColor(v: Double, vararg thresholds: Double): Pair<String, Long>
 private fun RightPanel(
     modifier: Modifier, uiState: MainUiState, colors: ThemeColors,
     onCitySelect: (Int) -> Unit, onLocationRequest: () -> Unit,
-    onSearchClick: () -> Unit, onPinyinNavClick: (String) -> Unit, onLayoutEditorClick: () -> Unit,
+    onSearchOpen: () -> Unit, onPinyinNavClick: (String) -> Unit, onLayoutEditorClick: () -> Unit,
 ) {
     Column(modifier = modifier.fillMaxHeight()) {
         // 工具栏
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             LocationButton(isLocating = uiState.isLocating, useMyLocation = uiState.useMyLocationEnabled, onClick = onLocationRequest, colors = colors)
             Spacer(Modifier.width(10.dp))
-            Surface(modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onSearchClick), color = colors.cardHighlight, shape = RoundedCornerShape(16.dp)) {
+            Surface(modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onSearchOpen), color = colors.cardHighlight, shape = RoundedCornerShape(16.dp)) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("🔍", fontSize = 18.sp); Spacer(Modifier.width(8.dp)); Text("搜索城市", fontSize = 14.sp, color = colors.textPrimary)
                 }
@@ -712,7 +778,7 @@ private fun RightPanel(
 private fun LayoutEditorScreen(
     uiState: MainUiState, colors: ThemeColors, onClose: () -> Unit,
     onMoveWidget: (String, Int, Int) -> Unit, onToggleWidgetVisibility: (String, String) -> Unit,
-    onSetEditingZone: (String) -> Unit,
+    onSetEditingZone: (String) -> Unit, onApplyTemplate: (String) -> Unit,
 ) {
     var draggingFrom by remember { mutableStateOf<Int?>(null) }
     var draggingZone by remember { mutableStateOf("") }
@@ -833,10 +899,7 @@ private fun LayoutEditorScreen(
             items(templates.size) { i ->
                 val (name, zones) = templates[i]
                 Surface(
-                    modifier = Modifier.width(180.dp).clickable {
-                        // Apply template by rebuilding config
-                        onMoveWidget("left", 0, 0) // no-op placeholder
-                    },
+                    modifier = Modifier.width(180.dp).clickable { onApplyTemplate(name) },
                     color = colors.cardHighlight, shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(name, fontSize = 14.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium, modifier = Modifier.padding(16.dp))

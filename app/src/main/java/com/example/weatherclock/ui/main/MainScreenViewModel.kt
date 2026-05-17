@@ -325,15 +325,19 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     // ── 搜索 ──
+    private var searchDebounceJob: Job? = null
     fun onSearchQueryChange(query: String) {
-        _uiState.value = _uiState.value.copy(searchQuery = query)
+        _uiState.value = _uiState.value.copy(searchQuery = query, isSearchMode = true)
+        searchDebounceJob?.cancel()
         if (query.isNotBlank()) {
-            _uiState.value = _uiState.value.copy(
-                searchResults = WeatherRepository.searchLocations(query),
-                isSearchMode = true,
-            )
+            searchDebounceJob = viewModelScope.launch {
+                delay(150) // debounce
+                _uiState.value = _uiState.value.copy(
+                    searchResults = WeatherRepository.searchLocations(query),
+                )
+            }
         } else {
-            _uiState.value = _uiState.value.copy(searchResults = emptyList(), isSearchMode = false)
+            _uiState.value = _uiState.value.copy(searchResults = emptyList())
         }
     }
 
@@ -341,6 +345,10 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         if (!focused && _uiState.value.searchQuery.isBlank()) {
             _uiState.value = _uiState.value.copy(isSearchMode = false, searchResults = emptyList())
         }
+    }
+
+    fun onSearchOpen() {
+        _uiState.value = _uiState.value.copy(isSearchMode = true, searchQuery = "", searchResults = emptyList())
     }
 
     fun onCitySelectedFromSearch(location: WeatherLocation) {
@@ -398,6 +406,43 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     fun setEditingZone(zone: String) {
         _uiState.value = _uiState.value.copy(editingZone = zone)
+    }
+
+    // 应用布局模板
+    fun applyTemplate(templateName: String) {
+        val ctx = getApplication<Application>()
+        val config = when (templateName) {
+            "默认" -> LayoutConfig(zones = listOf(
+                WidgetZone("left", listOf(
+                    WidgetConfig("CLOCK", true, 0), WidgetConfig("DATE", true, 1),
+                    WidgetConfig("LOCATION", true, 2), WidgetConfig("TEMPERATURE", true, 3), WidgetConfig("DETAILS", true, 4)
+                )),
+                WidgetZone("right", listOf(
+                    WidgetConfig("FORECAST_7D", true, 0), WidgetConfig("AIR_QUALITY", true, 1),
+                    WidgetConfig("SUN_SUNRISE", true, 2), WidgetConfig("THEME_SWITCH", true, 3)
+                ))
+            ))
+            "极简" -> LayoutConfig(zones = listOf(
+                WidgetZone("left", listOf(
+                    WidgetConfig("CLOCK", true, 0), WidgetConfig("DATE", true, 1), WidgetConfig("TEMPERATURE", true, 2)
+                )),
+                WidgetZone("right", listOf(
+                    WidgetConfig("FORECAST_7D", true, 0)
+                ))
+            ))
+            "信息全开" -> LayoutConfig(zones = listOf(
+                WidgetZone("left", listOf(
+                    WidgetConfig("CLOCK", true, 0), WidgetConfig("DATE", true, 1),
+                    WidgetConfig("LOCATION", true, 2), WidgetConfig("TEMPERATURE", true, 3), WidgetConfig("DETAILS", true, 4)
+                )),
+                WidgetZone("right", listOf(
+                    WidgetConfig("FORECAST_7D", true, 0), WidgetConfig("AIR_QUALITY", true, 1),
+                    WidgetConfig("SUN_SUNRISE", true, 2), WidgetConfig("THEME_SWITCH", true, 3), WidgetConfig("SPACING", true, 4)
+                ))
+            ))
+            else -> return
+        }
+        saveLayoutConfig(config)
     }
 
     // ── 位置权限 ──

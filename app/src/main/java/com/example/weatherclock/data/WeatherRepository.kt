@@ -131,12 +131,23 @@ object WeatherRepository {
     fun searchLocations(query: String): List<WeatherLocation> {
         if (query.isBlank()) return allLocations
         val q = query.trim().lowercase()
-        return allLocations.filter { loc ->
-            loc.name.contains(query, ignoreCase = true) ||
-            loc.pinyin.contains(q) ||
-            loc.pinyinInitial.equals(q, ignoreCase = true) ||
-            loc.country.contains(query, ignoreCase = true)
-        }
+        // Fuzzy match: query fragments against name, pinyin, or country
+        return allLocations
+            .map { loc -> loc to when {
+                // Exact/contains match (highest priority)
+                loc.name.contains(query, ignoreCase = true) -> 0
+                loc.country.contains(query, ignoreCase = true) -> 1
+                loc.pinyinInitial.equals(q, ignoreCase = true) -> 2
+                loc.pinyin == q -> 3
+                // Fuzzy pinyin: each query char must appear in order in pinyin
+                q.all { c -> loc.pinyin.indexOf(c, ignoreCase = true) >= 0 } -> 4
+                // Partial pinyin word match
+                q.split(" ").all { word -> loc.pinyin.contains(word) } -> 5
+                else -> 99
+            } }
+            .filter { (_, priority) -> priority < 99 }
+            .sortedBy { (_, priority) -> priority }
+            .map { (loc, _) -> loc }
     }
 
     fun getCityGroups(): List<CityGroup> = listOf(
