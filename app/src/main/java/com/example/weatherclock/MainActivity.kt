@@ -26,14 +26,23 @@ class MainActivity : ComponentActivity() {
         // Keep screen on for smart display / TV use
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Fullscreen immersive
-        enableEdgeToEdge()
-
-        window.decorView.systemUiVisibility = (
-            android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
-            or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        )
+        // enableEdgeToEdge() is API 35+. Guard for older devices.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            enableEdgeToEdge()
+            window.decorView.systemUiVisibility = (
+                android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
+        } else {
+            // Fallback for API 23-34: use window flags instead
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
+        }
 
         setContent {
             val viewModel: MainScreenViewModel = viewModel()

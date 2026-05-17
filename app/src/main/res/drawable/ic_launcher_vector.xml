@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E88E5"/>
+      <stop offset="100%" stop-color="#0D47A1"/>
+    </linearGradient>
+    <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD54F"/>
+      <stop offset="100%" stop-color="#FF9800"/>
+    </linearGradient>
+  </defs>
+  <circle cx="54" cy="54" r="52" fill="url(#bgGrad)"/>
+  <circle cx="54" cy="54" r="26" fill="url(#sunGrad)"/>
+  <g stroke="#FFD54F" stroke-width="4" stroke-linecap="round">
+    <line x1="54" y1="14" x2="54" y2="22"/>
+    <line x1="54" y1="86" x2="54" y2="94"/>
+    <line x1="14" y1="54" x2="22" y2="54"/>
+    <line x1="86" y1="54" x2="94" y2="54"/>
+    <line x1="25.7" y1="25.7" x2="31.5" y2="31.5"/>
+    <line x1="82.3" y1="82.3" x2="76.5" y2="76.5"/>
+    <line x1="82.3" y1="25.7" x2="76.5" y2="31.5"/>
+    <line x1="25.7" y1="82.3" x2="31.5" y2="76.5"/>
+  </g>
+  <line x1="54" y1="54" x2="54" y2="38" stroke="#0D47A1" stroke-width="5" stroke-linecap="round"/>
+  <line x1="54" y1="54" x2="68" y2="54" stroke="#0D47A1" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="54" cy="54" r="4" fill="#0D47A1"/>
+  <g fill="white" opacity="0.9">
+    <ellipse cx="76" cy="72" rx="12" ry="7"/>
+    <ellipse cx="85" cy="70" rx="8" ry="6"/>
+    <ellipse cx="68" cy="72" rx="9" ry="6"/>
+  </g>
+</svg>

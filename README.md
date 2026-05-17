@@ -1,15 +1,17 @@
 # WeatherClock 天气时钟
 
 <div align="center">
-  <img src="docs/icon.png" width="120" alt="WeatherClock Icon" />
+  <img src="docs/icon.png" width="128" alt="WeatherClock Icon" />
   <p>
     <strong>一款专为电视、平板、桌面音响打造的全景天气时钟</strong><br/>
     横屏显示 · 实时天气 · 多主题 · 位置时区自动切换
   </p>
   <p>
-    <img src="https://img.shields.io/badge/Android-4.4%2B-brightgreen?style=flat-square" alt="Android 4.4+"/>
+    <img src="https://img.shields.io/badge/Android-6.0%2B-brightgreen?style=flat-square" alt="Android 6.0+"/>
     <img src="https://img.shields.io/badge/Platform-TV%7CPad%7CSmart%20Display-blue?style=flat-square" alt="Platform TV/Pad/Smart Display"/>
     <img src="https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square" alt="License MIT"/>
+    <img src="https://img.shields.io/badge/minSdk-23-blue?style=flat-square" alt="minSdk 23"/>
+    <img src="https://img.shields.io/badge/targetSdk-34-green?style=flat-square" alt="targetSdk 34"/>
   </p>
 </div>
 
@@ -31,6 +33,7 @@
 - **A-Z 快速导航** — 侧边拼音首字母栏，点击即时跳转
 
 ### 9 套主题风格
+
 | 主题 | 风格描述 |
 |------|---------|
 | 🌓 自动 | 跟随当地时间自动切换昼夜 |
@@ -39,9 +42,9 @@
 | 🌙 星空 | 深邃夜空，静谧安宁 |
 | 🌲 森林 | 翠绿自然，清新淡雅 |
 | 🌊 海洋 | 蓝白渐变，开阔宁静 |
-| 🖋️ **水墨** | 中国水墨画风格，黑白灰层次（新增）|
-| 📱 **简约** | 极简留白，信息清晰（新增）|
-| 🌦️ **动态天气** | 雨/雪/雷暴粒子沉浸动效（新增）|
+| 🖋️ 水墨 | 中国水墨画风格，黑白灰层次 |
+| 📱 简约 | 极简留白，信息清晰 |
+| 🌦️ 动态天气 | 雨/雪/雷暴粒子沉浸动效 |
 
 ### 自定义布局
 - **📐 布局编辑器** — 拖拽调整各区块显示顺序
@@ -84,7 +87,7 @@
 | **天气 API** | [Open-Meteo](https://open-meteo.com/)（免费，无需 API Key）|
 | **空气质量 API** | [Open-Meteo Air Quality](https://open-meteo.com/)（免费）|
 | **序列化** | Kotlinx Serialization JSON |
-| **目标平台** | Android 4.4 ~ Android 16（API 23~36）|
+| **最低支持** | Android 6.0（API 23）至 Android 16（API 36） |
 
 ---
 
@@ -107,13 +110,16 @@ WeatherClock/
 │   │   │       └── main/
 │   │   │           ├── MainScreen.kt    # 主界面（含粒子系统/搜索/布局编辑器）
 │   │   │           └── MainScreenViewModel.kt  # 业务逻辑
-│   │   ├── res/                          # Android 资源
+│   │   ├── res/
+│   │   │   ├── mipmap-*/               # 应用图标（多密度）
+│   │   │   └── drawable/               # 主题图标资源
 │   │   └── AndroidManifest.xml
 │   └── build.gradle.kts
 ├── docs/
-│   └── screenshots/                      # 主题效果图
+│   ├── icon.png                        # 应用图标展示
+│   └── screenshots/                    # 主题效果图
 ├── .github/workflows/
-│   └── build.yml                        # GitHub Actions 自动编译
+│   └── build.yml                       # GitHub Actions 自动编译
 └── README.md
 ```
 
@@ -174,6 +180,17 @@ app/build/outputs/apk/debug/
 | 天气预报 | [Open-Meteo Weather API](https://open-meteo.com/en/docs) | 免费，无需注册 |
 | 空气质量 | [Open-Meteo Air Quality API](https://open-meteo.com/en/docs/air-quality) | 免费，每小时更新 |
 | 定位服务 | Google Fused Location Provider | 设备GPS/WiFi/基站 |
+
+---
+
+## 📄 兼容性
+
+| 项目 | 最低版本 | 最高版本 |
+|------|---------|---------|
+| Android 系统 | 6.0 Marshmallow (API 23) | 16 VanillaiIceCream (API 36) |
+| 设备类型 | 手机、平板、电视、桌面智能音响 | — |
+| 屏幕方向 | 横屏（强制） | — |
+| 屏幕方向传感器 | landscape（自动旋转支持）| — |
 
 ---
 
