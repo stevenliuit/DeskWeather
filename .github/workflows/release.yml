@@ -41,16 +41,14 @@ jobs:
         run: |
           ./gradlew assembleRelease --no-daemon
 
+      - name: List built APKs
+        run: ls -lh app/build/outputs/apk/release/
+
       - name: Upload release APKs
         uses: actions/upload-artifact@v4
         with:
           name: weatherclock-release-apks
-          path: |
-            app/build/outputs/apk/release/app-arm64-v8a-release.apk
-            app/build/outputs/apk/release/app-armeabi-v7a-release.apk
-            app/build/outputs/apk/release/app-x86_64-release.apk
-            app/build/outputs/apk/release/app-universal-release.apk
-          retention-days: 30
+          path: app/build/outputs/apk/release/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -63,10 +61,10 @@ jobs:
             ### 下载 APK
             | 架构 | 文件 |
             |------|------|
-            | 📱 通用 | `app-universal-release.apk` |
-            | 🖥️ ARM64 | `app-arm64-v8a-release.apk` |
-            | 🔧 ARM32 | `app-armeabi-v7a-release.apk` |
-            | 💻 x86_64 | `app-x86_64-release.apk` |
+            | 📱 通用 | `app-universal-release-unsigned.apk` |
+            | 🖥️ ARM64 | `app-arm64-v8a-release-unsigned.apk` |
+            | 🔧 ARM32 | `app-armeabi-v7a-release-unsigned.apk` |
+            | 💻 x86_64 | `app-x86_64-release-unsigned.apk` |
 
             ### 更新内容
             ${{ inputs.notes }}
@@ -78,9 +76,10 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            app/build/outputs/apk/release/app-universal-release.apk
-            app/build/outputs/apk/release/app-arm64-v8a-release.apk
-            app/build/outputs/apk/release/app-armeabi-v7a-release.apk
-            app/build/outputs/apk/release/app-x86_64-release.apk
+            app/build/outputs/apk/release/app-universal-release-unsigned.apk
+            app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+            app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk
+            app/build/outputs/apk/release/app-x86_64-release-unsigned.apk
+            app/build/outputs/apk/release/app-x86-release-unsigned.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
