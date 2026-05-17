@@ -765,7 +765,7 @@ private fun RightPanel(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             uiState.forecast.forEachIndexed { index, forecast ->
-                ForecastCard(item = forecast, isToday = index == 0, colors = colors, modifier = Modifier.weight(1f))
+                ForecastCard(item = forecast, isToday = index == 0, colors = colors, modifier = Modifier.weight(1f).heightIn(min = 140.dp))
             }
         }
     }
@@ -795,114 +795,112 @@ private fun LayoutEditorScreen(
         Text("长按区块后拖动调整顺序，点击 👁 切换显示/隐藏", fontSize = 14.sp, color = colors.textSecondary)
         Spacer(Modifier.height(16.dp))
 
-        // 区域选择标签
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            listOf("left" to "左侧区域", "right" to "右侧区域").forEach { (id, label) ->
-                Surface(
-                    modifier = Modifier.clickable { onSetEditingZone(id) },
-                    color = if (uiState.editingZone == id) colors.accentColor.copy(alpha = 0.3f) else colors.cardHighlight,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(label, fontSize = 14.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp))
-                }
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-
-        // 区块拖拽列表
-        val zoneWidgets = uiState.layoutConfig.zones.find { it.id == uiState.editingZone }?.widgets ?: emptyList()
-
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            itemsIndexed(zoneWidgets) { index, widget ->
-                val isDragging = draggingFrom == index && draggingZone == uiState.editingZone
-                val isDropTarget = dragOverIndex == index
-
-                Surface(
-                    color = when {
-                        isDragging -> colors.accentColor.copy(alpha = 0.4f)
-                        isDropTarget -> colors.accentColor.copy(alpha = 0.15f)
-                        else -> colors.cardHighlight
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer {
-                            if (isDragging) { alpha = 0.7f; scaleX = 1.05f; scaleY = 1.05f }
-                        }
-                        .pointerInput(Unit) {
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = {
-                                    draggingFrom = index; draggingZone = uiState.editingZone
-                                },
-                                onDragEnd = {
-                                    val from = draggingFrom; val to = dragOverIndex
-                                    if (from != null && to != null && from != to) {
-                                        onMoveWidget(uiState.editingZone, from, to)
-                                    }
-                                    draggingFrom = null; draggingZone = ""; dragOverIndex = null
-                                },
-                                onDragCancel = {
-                                    draggingFrom = null; draggingZone = ""; dragOverIndex = null
-                                },
-                                onDrag = { change, _ ->
-                                    change.consume()
-                                    // 简单：拖到哪个就是哪个
-                                    dragOverIndex = index
-                                }
-                            )
-                        }
-                ) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("☰", fontSize = 18.sp, color = colors.textSecondary)  // 拖动手柄
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(widget.type, fontSize = 15.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-                            Text(WidgetType.entries.find { it.name == widget.type }?.description ?: "", fontSize = 12.sp, color = colors.textSecondary)
-                        }
-                        // 可见性切换
+        Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // 左侧：区域选择 + 区块列表
+            Column(modifier = Modifier.weight(1f)) {
+                // 区域选择标签
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    listOf("left" to "左侧区域", "right" to "右侧区域").forEach { (id, label) ->
                         Surface(
-                            color = if (widget.visible) colors.accentColor.copy(alpha = 0.3f) else colors.cardHighlight,
-                            shape = RoundedCornerShape(8.dp)
+                            modifier = Modifier.clickable { onSetEditingZone(id) },
+                            color = if (uiState.editingZone == id) colors.accentColor.copy(alpha = 0.3f) else colors.cardHighlight,
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text(if (widget.visible) "👁 显示" else "🚫 隐藏", fontSize = 12.sp, color = colors.textPrimary,
-                                modifier = Modifier.clickable { onToggleWidgetVisibility(uiState.editingZone, widget.type) }
-                                    .padding(horizontal = 10.dp, vertical = 6.dp))
+                            Text(label, fontSize = 14.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+
+                // 区块拖拽列表
+                val zoneWidgets = uiState.layoutConfig.zones.find { it.id == uiState.editingZone }?.widgets ?: emptyList()
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(zoneWidgets) { index, widget ->
+                        val isDragging = draggingFrom == index && draggingZone == uiState.editingZone
+                        val isDropTarget = dragOverIndex == index
+
+                        Surface(
+                            color = when {
+                                isDragging -> colors.accentColor.copy(alpha = 0.4f)
+                                isDropTarget -> colors.accentColor.copy(alpha = 0.15f)
+                                else -> colors.cardHighlight
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer {
+                                    if (isDragging) { alpha = 0.7f; scaleX = 1.05f; scaleY = 1.05f }
+                                }
+                                .pointerInput(Unit) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            draggingFrom = index; draggingZone = uiState.editingZone
+                                        },
+                                        onDragEnd = {
+                                            val from = draggingFrom; val to = dragOverIndex
+                                            if (from != null && to != null && from != to) {
+                                                onMoveWidget(uiState.editingZone, from, to)
+                                            }
+                                            draggingFrom = null; draggingZone = ""; dragOverIndex = null
+                                        },
+                                        onDragCancel = {
+                                            draggingFrom = null; draggingZone = ""; dragOverIndex = null
+                                        },
+                                        onDrag = { change, _ ->
+                                            change.consume()
+                                            dragOverIndex = index
+                                        }
+                                    )
+                                }
+                        ) {
+                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("☰", fontSize = 18.sp, color = colors.textSecondary)
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(widget.type, fontSize = 15.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                                    Text(WidgetType.entries.find { it.name == widget.type }?.description ?: "", fontSize = 12.sp, color = colors.textSecondary)
+                                }
+                                Surface(
+                                    color = if (widget.visible) colors.accentColor.copy(alpha = 0.3f) else colors.cardHighlight,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(if (widget.visible) "👁 显示" else "🚫 隐藏", fontSize = 12.sp, color = colors.textPrimary,
+                                        modifier = Modifier.clickable { onToggleWidgetVisibility(uiState.editingZone, widget.type) }
+                                            .padding(horizontal = 10.dp, vertical = 6.dp))
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
 
-        Spacer(Modifier.height(12.dp))
+            // 右侧：快速模板（竖向排列展示）
+            Column(modifier = Modifier.weight(0.8f)) {
+                Text("📋 快速模板", fontSize = 16.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(12.dp))
 
-        // 快速模板
-        Text("📋 快速模板", fontSize = 16.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(8.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            val templates = listOf(
-                "默认" to listOf(
-                    WidgetZone("left", listOf(WidgetConfig("CLOCK",true,0), WidgetConfig("DATE",true,1), WidgetConfig("LOCATION",true,2), WidgetConfig("TEMPERATURE",true,3), WidgetConfig("DETAILS",true,4))),
-                    WidgetZone("right", listOf(WidgetConfig("FORECAST_7D",true,0), WidgetConfig("AIR_QUALITY",true,1), WidgetConfig("SUN_SUNRISE",true,2), WidgetConfig("THEME_SWITCH",true,3)))
-                ),
-                "极简" to listOf(
-                    WidgetZone("left", listOf(WidgetConfig("CLOCK",true,0), WidgetConfig("DATE",true,1), WidgetConfig("TEMPERATURE",true,2))),
-                    WidgetZone("right", listOf(WidgetConfig("FORECAST_7D",true,0)))
-                ),
-                "信息全开" to listOf(
-                    WidgetZone("left", listOf(WidgetConfig("CLOCK",true,0), WidgetConfig("DATE",true,1), WidgetConfig("LOCATION",true,2), WidgetConfig("TEMPERATURE",true,3), WidgetConfig("DETAILS",true,4))),
-                    WidgetZone("right", listOf(WidgetConfig("FORECAST_7D",true,0), WidgetConfig("AIR_QUALITY",true,1), WidgetConfig("SUN_SUNRISE",true,2), WidgetConfig("THEME_SWITCH",true,3), WidgetConfig("SPACING",true,4)))
-                ),
-            )
-            items(templates.size) { i ->
-                val (name, zones) = templates[i]
-                Surface(
-                    modifier = Modifier.width(180.dp).clickable { onApplyTemplate(name) },
-                    color = colors.cardHighlight, shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(name, fontSize = 14.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium, modifier = Modifier.padding(16.dp))
+                val templates = listOf(
+                    "默认" to "均衡展示所有信息",
+                    "极简" to "仅保留核心数据",
+                    "信息全开" to "最大化信息显示"
+                )
+                templates.forEach { (name, desc) ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onApplyTemplate(name) },
+                        color = colors.cardHighlight, shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(name, fontSize = 15.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                                Text(desc, fontSize = 12.sp, color = colors.textSecondary)
+                            }
+                            Text("→", fontSize = 18.sp, color = colors.accentColor)
+                        }
+                    }
                 }
             }
         }
@@ -929,13 +927,15 @@ private fun LayoutEditorScreen(
 @Composable private fun ForecastCard(item: DayForecastItem, isToday: Boolean, colors: ThemeColors, modifier: Modifier = Modifier) {
     val cardBg = if (isToday) colors.accentColor.copy(alpha = 0.18f) else colors.cardHighlight
     Card(modifier = modifier.fillMaxHeight(), colors = CardDefaults.cardColors(containerColor = cardBg), shape = RoundedCornerShape(14.dp)) {
-        Column(modifier = Modifier.fillMaxSize().padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceEvenly) {
+        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
             Text(item.dayLabel, fontSize = if (isToday) 14.sp else 12.sp, color = if (isToday) colors.accentColor else colors.textSecondary, fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium)
             Text(item.icon, fontSize = 30.sp)
-            Text(item.tempMax, fontSize = 20.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
-            Text(item.tempMin, fontSize = 15.sp, color = colors.textSecondary.copy(alpha = 0.65f))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(item.tempMax, fontSize = 20.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                Text(item.tempMin, fontSize = 15.sp, color = colors.textSecondary.copy(alpha = 0.65f))
+            }
             if (item.precipProb.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically) { Text("💧", fontSize = 11.sp); Text(item.precipProb, fontSize = 11.sp, color = Color(0xFF64B5F6)) }
-            else Spacer(Modifier.height(12.dp))
+            else Spacer(Modifier.height(0.dp))
         }
     }
 }

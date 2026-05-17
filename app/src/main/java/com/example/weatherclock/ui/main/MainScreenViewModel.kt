@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Collections
@@ -278,7 +279,13 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     fun setTheme(theme: AppTheme) {
         AppSettings.saveTheme(getApplication(), theme)
-        updateDateTime()
+        // Force immediate recomposition by updating state synchronously
+        val isDay = currentWeatherCode.let { code ->
+            // Use current isDay from weather, or default to day
+            isCurrentlyDay
+        }
+        val colors = ThemeDefinitions.getTheme(theme, isDay)
+        _uiState.value = _uiState.value.copy(themeColors = colors)
     }
 
     // ── 城市管理 ──
@@ -448,6 +455,29 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     // ── 位置权限 ──
     fun onLocationPermissionGranted() {
         _uiState.value = _uiState.value.copy(isLocating = true, locationDenied = false, useMyLocationEnabled = true)
+        // Actually fetch the location via coroutine
+        viewModelScope.launch {
+            val ctx = getApplication<Application>()
+            try {
+                val location = withTimeoutOrNull(10_000L) {
+                    LocationProvider.getCurrentLocation(ctx)
+                } ?: LocationProvider.getLastKnownLocation(ctx)
+
+                if (location != null) {
+                    onLocationReceived(location.latitude, location.longitude, location.source)
+                } else {
+                    _uiState.value = _uiState.value.copy(isLocating = false, locationDenied = true)
+                }
+            } catch (e: Exception) {
+                // Fallback: try last known
+                val last = LocationProvider.getLastKnownLocation(getApplication())
+                if (last != null) {
+                    onLocationReceived(last.latitude, last.longitude, last.source)
+                } else {
+                    _uiState.value = _uiState.value.copy(isLocating = false, locationDenied = true)
+                }
+            }
+        }
     }
 
     fun onLocationPermissionDenied() {
