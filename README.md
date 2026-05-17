@@ -58,6 +58,12 @@
 
 > 完整截图见 [`docs/screenshots/`](docs/screenshots/)
 
+### 主界面预览
+
+| 左面板（时钟/天气） | 右面板（7日预报） |
+|:---:|:---:|
+| ![Left Panel](docs/screenshots/screenshot_left_panel.png) | ![Right Panel](docs/screenshots/screenshot_right_panel.png) |
+
 ### 部分主题效果
 
 | 晴昼 | 黄昏 | 星空 |
