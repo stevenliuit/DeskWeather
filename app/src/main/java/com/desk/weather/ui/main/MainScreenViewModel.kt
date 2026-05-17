@@ -1,9 +1,9 @@
-package com.example.weatherclock.ui.main
+package com.desk.weather.ui.main
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.weatherclock.data.*
+import com.desk.weather.data.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow

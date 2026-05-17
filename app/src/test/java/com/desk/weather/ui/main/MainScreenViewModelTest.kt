@@ -1,6 +1,6 @@
-package com.example.weatherclock.ui.main
+package com.desk.weather.ui.main
 
-import com.example.weatherclock.data.DataRepository
+import com.desk.weather.data.DataRepository
 import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first

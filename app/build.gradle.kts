@@ -5,10 +5,10 @@ plugins {
 }
 
 android {
-    namespace = "com.example.weatherclock"
+    namespace = "com.desk.weather"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.weatherclock"
+        applicationId = "com.desk.weather"
         minSdk = 23
         targetSdk = 34
         versionCode = 1
@@ -20,10 +20,20 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("keystore.jks")
+            storePassword = "DeskWeather2026!"
+            keyAlias = "deskweather"
+            keyPassword = "DeskWeather2026!"
+        }
+    }
+
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

@@ -1,4 +1,4 @@
-package com.example.weatherclock.ui.theme
+package com.desk.weather.ui.theme
 
 import android.app.Activity
 import androidx.compose.material3.MaterialTheme
@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import com.example.weatherclock.data.ThemeColors
+import com.desk.weather.data.ThemeColors
 
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFF42A5F5),

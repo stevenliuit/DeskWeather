@@ -1,4 +1,4 @@
-package com.example.weatherclock
+package com.desk.weather
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -31,17 +31,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.weatherclock.ui.main.MainScreenViewModel
-import com.example.weatherclock.ui.main.MainScreen
-import com.example.weatherclock.ui.theme.WeatherClockTheme
-import com.example.weatherclock.util.RoundDisplayHelper
+import com.desk.weather.ui.main.MainScreenViewModel
+import com.desk.weather.ui.main.MainScreen
+import com.desk.weather.ui.theme.WeatherClockTheme
+import com.desk.weather.util.RoundDisplayHelper
 import kotlin.math.min
 
 class MainActivity : ComponentActivity() {
 
     private val configUpdateReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
-            if (intent.action == "com.example.weatherclock.CONFIG_UPDATE") {
+            if (intent.action == "com.desk.weather.CONFIG_UPDATE") {
                 recreate()
             }
         }
@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val filter = IntentFilter("com.example.weatherclock.CONFIG_UPDATE")
+        val filter = IntentFilter("com.desk.weather.CONFIG_UPDATE")
         registerReceiver(configUpdateReceiver, filter, RECEIVER_NOT_EXPORTED)
 
         // Force landscape for TV/tablet/smart display

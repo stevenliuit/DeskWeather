@@ -1,4 +1,4 @@
-package com.example.weatherclock.data
+package com.desk.weather.data
 
 import android.content.Context
 import android.content.SharedPreferences

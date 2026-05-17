@@ -1,5 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
-package com.example.weatherclock.ui.main
+package com.desk.weather.ui.main
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,8 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.weatherclock.data.*
-import com.example.weatherclock.data.ThemeDefinitions
+import com.desk.weather.data.*
+import com.desk.weather.data.ThemeDefinitions
 import kotlinx.coroutines.delay
 import kotlin.math.*
 import kotlin.random.Random

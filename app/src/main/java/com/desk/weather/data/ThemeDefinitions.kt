@@ -1,4 +1,4 @@
-package com.example.weatherclock.data
+package com.desk.weather.data
 
 import androidx.compose.ui.graphics.Color
 
