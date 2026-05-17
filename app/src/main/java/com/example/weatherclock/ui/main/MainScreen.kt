@@ -45,7 +45,9 @@ import kotlin.random.Random
 @Composable
 fun MainScreen(
     viewModel: MainScreenViewModel = viewModel(),
-    onLocationChange: (Int) -> Unit = {}
+    onLocationChange: (Int) -> Unit = {},
+    isRoundDisplay: Boolean = false,
+    roundDiameter: androidx.compose.ui.unit.Dp? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val colors = uiState.themeColors
@@ -153,9 +155,17 @@ fun MainScreen(
         )
     } else listOf(colors.topGradient, colors.bottomGradient)
 
+    // 圆形屏幕：内容限制在正方形区域内
+    val boxModifier = if (isRoundDisplay && roundDiameter != null) {
+        Modifier
+            .size(roundDiameter)
+            .clip(CircleShape)
+    } else {
+        Modifier.fillMaxSize()
+    }
+
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = boxModifier
             .background(brush = Brush.verticalGradient(
                 colors = bgColors, startY = 0f, endY = 2000f + animatedOffset * 300f
             ))
@@ -306,6 +316,7 @@ private fun MainContent(
             uiState, colors, onSearchQueryChange, onSearchFocus,
             onCitySelectedFromSearch, onPinyinNavClick,
             onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned,
+            onBack = { viewModel.onSearchBack() },
         )
         else -> Row(
             modifier = Modifier.fillMaxSize().padding(28.dp),
@@ -334,9 +345,20 @@ private fun SearchScreen(
     onCitySelected: (WeatherLocation) -> Unit, onPinyinNavClick: (String) -> Unit,
     onToggleFavorite: (WeatherLocation) -> Unit, onTogglePin: (WeatherLocation) -> Unit,
     onIsFavorite: (WeatherLocation) -> Boolean, onIsPinned: (WeatherLocation) -> Boolean,
+    onBack: () -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxSize().padding(28.dp)) {
         Column(Modifier.weight(1f).fillMaxHeight()) {
+            // 返回按钮
+            Surface(
+                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack),
+                color = colors.cardHighlight
+            ) {
+                Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("← 返回", fontSize = 14.sp, color = colors.textPrimary)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
             // 搜索框
             SearchBar(query = uiState.searchQuery, colors = colors, onQueryChange = onSearchQueryChange, onFocusChange = onSearchFocus)
             Spacer(Modifier.height(12.dp))
@@ -823,20 +845,25 @@ private fun RightPanel(
                 Text("七日天气预报", fontSize = 16.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
             }
 
-            // Use LazyRow so 7 days scroll horizontally instead of being squished
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                contentPadding = PaddingValues(end = 8.dp)
-            ) {
-                items(uiState.forecast.size) { index ->
-                    val forecast = uiState.forecast[index]
-                    ForecastCard(
-                        item = forecast,
-                        isToday = index == 0,
-                        colors = colors,
-                        modifier = Modifier.width(80.dp)
-                    )
+            // 七天预报：自动换行布局，不再横向滚动
+            val forecastItems = uiState.forecast
+            val rows = forecastItems.chunked(4) // 每行最多4个
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                rows.forEach { rowItems ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        rowItems.forEach { forecast ->
+                            ForecastCard(
+                                item = forecast,
+                                isToday = forecast == forecastItems.first(),
+                                colors = colors,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        // 填充空白让最后一行对齐
+                        repeat(4 - rowItems.size) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
                 }
             }
         }

@@ -377,6 +377,10 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         _uiState.value = _uiState.value.copy(isSearchMode = true, searchQuery = "", searchResults = emptyList())
     }
 
+    fun onSearchBack() {
+        _uiState.value = _uiState.value.copy(isSearchMode = false, searchQuery = "", searchResults = emptyList())
+    }
+
     fun onCitySelectedFromSearch(location: WeatherLocation) {
         val allLocs = WeatherRepository.getAllLocations()
         val idx = allLocs.indexOfFirst { it.name == location.name && it.latitude == location.latitude }

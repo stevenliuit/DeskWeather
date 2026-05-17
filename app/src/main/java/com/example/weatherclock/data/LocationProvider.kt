@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Looper
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -22,6 +23,25 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 object LocationProvider {
+
+    private const val TAG = "LocationProvider"
+
+    // 标记 Play Services 是否可用（Android 8.1 无 Play Services 时会报 ClassNotFoundException）
+    private var playServicesAvailable: Boolean? = null
+
+    private fun isPlayServicesAvailable(): Boolean {
+        playServicesAvailable?.let { return it }
+        return try {
+            // 尝试调用一次 LocationServices 关键方法，触发 ClassNotFoundException
+            Class.forName("com.google.android.gms.location.LocationServices")
+            playServicesAvailable = true
+            true
+        } catch (e: ClassNotFoundException) {
+            Log.w(TAG, "Google Play Services not available on this device", e)
+            playServicesAvailable = false
+            false
+        }
+    }
 
     data class LocationData(
         val latitude: Double,
@@ -43,12 +63,21 @@ object LocationProvider {
 
     @SuppressLint("MissingPermission")
     suspend fun getLastKnownLocation(context: Context): LocationData? {
-        val fusedClient: FusedLocationProviderClient =
+        if (!isPlayServicesAvailable()) {
+            Log.w(TAG, "Play Services unavailable, skipping location")
+            return null
+        }
+
+        val fusedClient: FusedLocationProviderClient? = try {
             LocationServices.getFusedLocationProviderClient(context)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get fused location client", e)
+            return null
+        }
 
         return suspendCancellableCoroutine { continuation ->
             try {
-                fusedClient.lastLocation.addOnSuccessListener { location: Location? ->
+                fusedClient?.lastLocation?.addOnSuccessListener { location: Location? ->
                     val result = location?.let {
                         LocationData(
                             latitude = it.latitude,
@@ -58,10 +87,11 @@ object LocationProvider {
                         )
                     }
                     continuation.resume(result)
-                }.addOnFailureListener {
+                }?.addOnFailureListener {
                     continuation.resume(null)
-                }
+                } ?: continuation.resume(null)
             } catch (e: Exception) {
+                Log.e(TAG, "Exception getting last known location", e)
                 continuation.resume(null)
             }
         }
@@ -69,22 +99,51 @@ object LocationProvider {
 
     @SuppressLint("MissingPermission")
     suspend fun getCurrentLocation(context: Context): LocationData? {
-        val fusedClient: FusedLocationProviderClient =
+        if (!isPlayServicesAvailable()) {
+            Log.w(TAG, "Play Services unavailable, skipping location")
+            return null
+        }
+
+        val fusedClient: FusedLocationProviderClient? = try {
             LocationServices.getFusedLocationProviderClient(context)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get fused location client", e)
+            return null
+        }
 
         return suspendCancellableCoroutine { continuation ->
-            val locationRequest = LocationRequest.Builder(
-                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-                1000L
-            ).apply {
-                setMinUpdateIntervalMillis(500L)
-                setMaxUpdates(1)
-                setWaitForAccurateLocation(false)
-            }.build()
+            // API 31+ 使用 LocationRequest.Builder，API 23-30 使用旧版 LocationRequest
+            val locationRequest: LocationRequest = try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    LocationRequest.Builder(
+                        Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                        1000L
+                    ).apply {
+                        setMinUpdateIntervalMillis(500L)
+                        setMaxUpdates(1)
+                        setWaitForAccurateLocation(false)
+                    }.build()
+                } else {
+                    // API 23-30: 使用旧版 LocationRequest 构造函数
+                    @Suppress("DEPRECATION")
+                    LocationRequest().apply {
+                        priority = Priority.PRIORITY_BALANCED_POWER_ACCURACY
+                        interval = 1000L
+                        fastestInterval = 500L
+                        numUpdates = 1
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to build location request", e)
+                continuation.resume(null)
+                return@suspendCancellableCoroutine
+            }
 
             val callback = object : LocationCallback() {
                 override fun onLocationResult(res: GmsLocationResult) {
-                    fusedClient.removeLocationUpdates(this)
+                    try {
+                        fusedClient?.removeLocationUpdates(this)
+                    } catch (_: Exception) {}
                     res.lastLocation?.let { loc ->
                         continuation.resume(
                             LocationData(
@@ -98,36 +157,67 @@ object LocationProvider {
                 }
             }
 
-            fusedClient.requestLocationUpdates(locationRequest, callback, Looper.getMainLooper())
+            try {
+                fusedClient?.requestLocationUpdates(
+                    locationRequest,
+                    callback,
+                    Looper.getMainLooper()
+                )
 
-            // Hard timeout: if no location within 20 seconds, give up
-            val timeoutJob = kotlinx.coroutines.GlobalScope.launch {
-                kotlinx.coroutines.delay(20_000L)
-                if (continuation.isActive) {
-                    fusedClient.removeLocationUpdates(callback)
-                    continuation.resume(null)
+                // Hard timeout: if no location within 20 seconds, give up
+                val timeoutJob = GlobalScope.launch {
+                    kotlinx.coroutines.delay(20_000L)
+                    if (continuation.isActive) {
+                        try {
+                            fusedClient?.removeLocationUpdates(callback)
+                        } catch (_: Exception) {}
+                        continuation.resume(null)
+                    }
                 }
-            }
 
-            continuation.invokeOnCancellation {
-                timeoutJob.cancel()
-                fusedClient.removeLocationUpdates(callback)
+                continuation.invokeOnCancellation {
+                    timeoutJob.cancel()
+                    try {
+                        fusedClient?.removeLocationUpdates(callback)
+                    } catch (_: Exception) {}
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception requesting location updates", e)
+                continuation.resume(null)
             }
         }
     }
 
     @SuppressLint("MissingPermission")
     fun observeLocation(context: Context): Flow<LocationData> = callbackFlow {
-        val fusedClient: FusedLocationProviderClient =
-            LocationServices.getFusedLocationProviderClient(context)
+        if (!isPlayServicesAvailable()) {
+            close()
+            return@callbackFlow
+        }
 
-        val locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-            10000L
-        ).apply {
-            setMinUpdateIntervalMillis(5000L)
-            setWaitForAccurateLocation(true)
-        }.build()
+        val fusedClient: FusedLocationProviderClient? = try {
+            LocationServices.getFusedLocationProviderClient(context)
+        } catch (e: Exception) {
+            close(e)
+            return@callbackFlow
+        }
+
+        val locationRequest: LocationRequest = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            LocationRequest.Builder(
+                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                10000L
+            ).apply {
+                setMinUpdateIntervalMillis(5000L)
+                setWaitForAccurateLocation(true)
+            }.build()
+        } else {
+            @Suppress("DEPRECATION")
+            LocationRequest().apply {
+                priority = Priority.PRIORITY_BALANCED_POWER_ACCURACY
+                interval = 10000L
+                fastestInterval = 5000L
+            }
+        }
 
         val callback = object : LocationCallback() {
             override fun onLocationResult(res: GmsLocationResult) {
@@ -142,10 +232,21 @@ object LocationProvider {
             }
         }
 
-        fusedClient.requestLocationUpdates(locationRequest, callback, Looper.getMainLooper())
+        try {
+            fusedClient?.requestLocationUpdates(
+                locationRequest,
+                callback,
+                Looper.getMainLooper()
+            )
+        } catch (e: Exception) {
+            close(e)
+            return@callbackFlow
+        }
 
         awaitClose {
-            fusedClient.removeLocationUpdates(callback)
+            try {
+                fusedClient?.removeLocationUpdates(callback)
+            } catch (_: Exception) {}
         }
     }
 
