@@ -81,6 +81,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     private var timeJob: Job? = null
     private var weatherJob: Job? = null
+    private var autoRefreshJob: Job? = null
     private var currentLocation: WeatherLocation? = null
     private var currentWeatherCode: Int = 0
     private var isCurrentlyDay: Boolean = true
@@ -88,6 +89,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     init {
         initializeData()
         startClock()
+        startAutoRefresh()
     }
 
     private fun initializeData() {
@@ -126,6 +128,22 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
             while (true) {
                 updateDateTime()
                 delay(1000)
+            }
+        }
+    }
+
+    // 定时自动刷新天气，每10分钟一次，确保数据始终最新
+    private fun startAutoRefresh() {
+        autoRefreshJob?.cancel()
+        autoRefreshJob = viewModelScope.launch {
+            // 首次等待30秒，让应用先完成初始化加载
+            delay(30_000)
+            while (true) {
+                currentLocation?.let { loc ->
+                    fetchWeather(loc)
+                }
+                // 每10分钟刷新一次
+                delay(600_000)
             }
         }
     }
@@ -564,5 +582,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         super.onCleared()
         timeJob?.cancel()
         weatherJob?.cancel()
+        autoRefreshJob?.cancel()
     }
 }
