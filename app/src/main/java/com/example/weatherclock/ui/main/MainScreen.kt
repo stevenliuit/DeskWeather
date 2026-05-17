@@ -558,72 +558,103 @@ private fun LeftPanel(
         }
     }
 
-    // 主题选择底部弹出
+    // 主题选择居中弹窗（用 Dialog 代替 BottomSheetScaffold，无难看的拖动手柄）
     if (showThemeSheet) {
-        BottomSheetScaffold(
-            sheetContent = {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("🎨", fontSize = 24.sp)
-                        Spacer(Modifier.width(8.dp))
-                        Text("选择主题", fontSize = 22.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+        AlertDialog(
+            onDismissRequest = { showThemeSheet = false },
+            containerColor = colors.surfaceColor,
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🎨", fontSize = 22.sp)
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text("选择主题", fontSize = 20.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                        Text("当前：${colors.name}", fontSize = 12.sp, color = colors.textSecondary)
                     }
-                    Spacer(Modifier.height(6.dp))
-                    Text("当前：${colors.name}", fontSize = 13.sp, color = colors.textSecondary)
-                    Spacer(Modifier.height(16.dp))
-                    ThemeDefinitions.themeList().forEach { (theme, tc) ->
+                    Spacer(Modifier.weight(1f))
+                    Surface(
+                        modifier = Modifier.clip(CircleShape).clickable { showThemeSheet = false },
+                        color = colors.cardHighlight
+                    ) {
+                        Text("✕", fontSize = 16.sp, color = colors.textSecondary, modifier = Modifier.padding(8.dp))
+                    }
+                }
+            },
+            text = {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(ThemeDefinitions.themeList().size) { idx ->
+                        val (theme, tc) = ThemeDefinitions.themeList()[idx]
                         val isSelected = colors.name == tc.name
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clickable { onThemeSelected(theme); showThemeSheet = false },
+                                .clickable {
+                                    onThemeSelected(theme)
+                                    showThemeSheet = false
+                                },
                             color = if (isSelected) tc.accentColor.copy(alpha = 0.2f) else tc.cardHighlight,
                             shape = RoundedCornerShape(14.dp),
                             border = if (isSelected) BorderStroke(2.dp, tc.accentColor) else null,
                         ) {
-                            Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                // 主题色渐变预览
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 大尺寸渐变预览（60×36dp）
                                 Box(
                                     Modifier
-                                        .size(44.dp)
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .size(60.dp, 36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(Brush.linearGradient(listOf(tc.topGradient, tc.bottomGradient)))
-                                ) {
-                                    if (isSelected) Box(Modifier.align(Alignment.Center).size(18.dp).background(Color.White.copy(alpha = 0.9f), CircleShape))
-                                }
+                                )
                                 Spacer(Modifier.width(14.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(theme.displayName, fontSize = 16.sp, color = tc.textPrimary, fontWeight = FontWeight.SemiBold)
-                                    Text(theme.description, fontSize = 12.sp, color = tc.textSecondary)
+                                    Text(
+                                        theme.displayName,
+                                        fontSize = 16.sp,
+                                        color = tc.textPrimary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        theme.description,
+                                        fontSize = 11.sp,
+                                        color = tc.textSecondary
+                                    )
                                 }
                                 if (isSelected) {
                                     Surface(color = tc.accentColor, shape = CircleShape) {
-                                        Text("✓", fontSize = 14.sp, color = Color.White, modifier = Modifier.padding(4.dp))
+                                        Text("✓", fontSize = 14.sp, color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                                     }
                                 }
                             }
                         }
                     }
-                    Spacer(Modifier.height(24.dp))
-                    // 自动主题说明
-                    Surface(color = colors.cardHighlight, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("💡", fontSize = 18.sp)
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Text("自动切换", fontSize = 14.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-                                Text("根据白天/黑夜自动切换日间/夜间主题", fontSize = 12.sp, color = colors.textSecondary)
+                    item {
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            color = colors.cardHighlight,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("💡", fontSize = 16.sp)
+                                Spacer(Modifier.width(10.dp))
+                                Column {
+                                    Text("自动切换", fontSize = 13.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                                    Text("根据白天/黑夜自动切换日间/夜间主题", fontSize = 11.sp, color = colors.textSecondary)
+                                }
                             }
                         }
                     }
-                    Spacer(Modifier.height(24.dp))
                 }
             },
-            containerColor = colors.surfaceColor,
-            sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            scaffoldState = rememberBottomSheetScaffoldState(),
-        ) { }
+            confirmButton = {},
+            dismissButton = {}
+        )
     }
 
     // 空气质量详情底部弹出
@@ -763,9 +794,23 @@ private fun RightPanel(
             Text("七日天气预报", fontSize = 16.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
         }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            uiState.forecast.forEachIndexed { index, forecast ->
-                ForecastCard(item = forecast, isToday = index == 0, colors = colors, modifier = Modifier.weight(1f).heightIn(min = 140.dp))
+        // Use LazyRow so 7 days scroll horizontally instead of being squished
+        val totalWidth = 1280  // approximate landscape width in dp (for weight calculation)
+        val cardWidth = ((totalWidth * 0.85) / 7).dp  // each card ~1/7 of available width
+
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(end = 8.dp)
+        ) {
+            items(uiState.forecast.size) { index ->
+                val forecast = uiState.forecast[index]
+                ForecastCard(
+                    item = forecast,
+                    isToday = index == 0,
+                    colors = colors,
+                    modifier = Modifier.width(cardWidth.coerceAtLeast(100.dp))
+                )
             }
         }
     }
@@ -926,16 +971,35 @@ private fun LayoutEditorScreen(
 
 @Composable private fun ForecastCard(item: DayForecastItem, isToday: Boolean, colors: ThemeColors, modifier: Modifier = Modifier) {
     val cardBg = if (isToday) colors.accentColor.copy(alpha = 0.18f) else colors.cardHighlight
-    Card(modifier = modifier.fillMaxHeight(), colors = CardDefaults.cardColors(containerColor = cardBg), shape = RoundedCornerShape(14.dp)) {
-        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
-            Text(item.dayLabel, fontSize = if (isToday) 14.sp else 12.sp, color = if (isToday) colors.accentColor else colors.textSecondary, fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium)
-            Text(item.icon, fontSize = 30.sp)
+    Card(
+        modifier = modifier.defaultMinSize(minWidth = 100.dp, minHeight = 140.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                item.dayLabel,
+                fontSize = if (isToday) 14.sp else 12.sp,
+                color = if (isToday) colors.accentColor else colors.textSecondary,
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium
+            )
+            Text(item.icon, fontSize = 28.sp)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(item.tempMax, fontSize = 20.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
-                Text(item.tempMin, fontSize = 15.sp, color = colors.textSecondary.copy(alpha = 0.65f))
+                Text(item.tempMax, fontSize = 19.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                Text(item.tempMin, fontSize = 14.sp, color = colors.textSecondary.copy(alpha = 0.65f))
             }
-            if (item.precipProb.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically) { Text("💧", fontSize = 11.sp); Text(item.precipProb, fontSize = 11.sp, color = Color(0xFF64B5F6)) }
-            else Spacer(Modifier.height(0.dp))
+            if (item.precipProb.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("💧", fontSize = 11.sp)
+                    Text(item.precipProb, fontSize = 11.sp, color = Color(0xFF64B5F6))
+                }
+            } else {
+                Spacer(Modifier.height(0.dp))
+            }
         }
     }
 }

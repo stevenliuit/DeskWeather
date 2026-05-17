@@ -453,10 +453,13 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     // ── 位置权限 ──
+    private var locatingJob: Job? = null
+
     fun onLocationPermissionGranted() {
+        // Cancel any in-progress location request
+        locatingJob?.cancel()
         _uiState.value = _uiState.value.copy(isLocating = true, locationDenied = false, useMyLocationEnabled = true)
-        // Actually fetch the location via coroutine
-        viewModelScope.launch {
+        locatingJob = viewModelScope.launch {
             val ctx = getApplication<Application>()
             try {
                 val location = withTimeoutOrNull(10_000L) {
@@ -466,7 +469,8 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
                 if (location != null) {
                     onLocationReceived(location.latitude, location.longitude, location.source)
                 } else {
-                    _uiState.value = _uiState.value.copy(isLocating = false, locationDenied = true)
+                    // No location available — stop spinner
+                    _uiState.value = _uiState.value.copy(isLocating = false)
                 }
             } catch (e: Exception) {
                 // Fallback: try last known
