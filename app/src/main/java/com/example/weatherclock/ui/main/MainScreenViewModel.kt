@@ -14,6 +14,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Collections
+import kotlin.math.pow
 
 data class DayForecastItem(
     val dayLabel: String,
@@ -493,9 +494,34 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun onLocationReceived(lat: Double, lon: Double, source: String) {
-        val nearest = WeatherRepository.findNearestCity(lat, lon)
-        _uiState.value = _uiState.value.copy(isLocating = false, locationSource = source)
-        selectCityByLocation(nearest)
+        viewModelScope.launch {
+            // Reverse geocode to get real city name
+            val locationName = WeatherRepository.reverseGeocode(lat, lon)
+                ?: WeatherRepository.findNearestCity(lat, lon).name
+
+            _uiState.value = _uiState.value.copy(isLocating = false, locationSource = source)
+
+            // Try to find a matching hardcoded city first
+            val nearest = WeatherRepository.findNearestCity(lat, lon)
+            val distance = kotlin.math.sqrt(
+                (nearest.latitude - lat) * (nearest.latitude - lat) +
+                (nearest.longitude - lon) * (nearest.longitude - lon)
+            )
+
+            // If within ~50km, use the hardcoded city (has full weather data)
+            if (distance < 1.0) {  // ~1 degree ≈ 111km, so 1.0 ≈ 111km
+                selectCityByLocation(nearest.copy(name = locationName))
+            } else {
+                // Far from any hardcoded city — search by name and use dynamic result
+                val results = WeatherRepository.searchCityByName(
+                    locationName.substringBefore(",").trim(), 5
+                )
+                val matched = results.minByOrNull { r ->
+                    kotlin.math.sqrt((r.latitude - lat).pow(2) + (r.longitude - lon).pow(2))
+                } ?: WeatherRepository.findNearestCity(lat, lon)
+                selectCityByLocation(matched.copy(name = locationName))
+            }
+        }
     }
 
     override fun onCleared() {

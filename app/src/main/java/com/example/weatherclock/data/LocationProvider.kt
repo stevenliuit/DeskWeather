@@ -40,26 +40,29 @@ object LocationProvider {
     }
 
     @SuppressLint("MissingPermission")
-    fun getLastKnownLocation(context: Context): LocationData? {
+    suspend fun getLastKnownLocation(context: Context): LocationData? {
         val fusedClient: FusedLocationProviderClient =
             LocationServices.getFusedLocationProviderClient(context)
 
-        var result: LocationData? = null
-        try {
-            fusedClient.lastLocation.addOnSuccessListener { location: Location? ->
-                location?.let {
-                    result = LocationData(
-                        latitude = it.latitude,
-                        longitude = it.longitude,
-                        accuracy = it.accuracy,
-                        source = getAccuracySource(it)
-                    )
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                fusedClient.lastLocation.addOnSuccessListener { location: Location? ->
+                    val result = location?.let {
+                        LocationData(
+                            latitude = it.latitude,
+                            longitude = it.longitude,
+                            accuracy = it.accuracy,
+                            source = getAccuracySource(it)
+                        )
+                    }
+                    continuation.resume(result)
+                }.addOnFailureListener {
+                    continuation.resume(null)
                 }
+            } catch (e: Exception) {
+                continuation.resume(null)
             }
-        } catch (e: Exception) {
-            // Ignore
         }
-        return result
     }
 
     @SuppressLint("MissingPermission")

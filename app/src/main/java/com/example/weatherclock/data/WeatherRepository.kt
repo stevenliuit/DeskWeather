@@ -173,6 +173,67 @@ object WeatherRepository {
         } ?: allLocations.first()
     }
 
+    // ── 免费地理编码：按城市名搜索（Open-Meteo Geocoding API）──
+    suspend fun searchCityByName(query: String, count: Int = 5): List<WeatherLocation> = withContext(Dispatchers.IO) {
+        try {
+            val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+            val url = "https://geocoding-api.open-meteo.com/v1/search?name=$encoded&count=$count&language=zh&format=json"
+            val response = java.net.URL(url).readText()
+            val json = parseJson(response)
+            val results = json["results"] as? List<Any?> ?: emptyList()
+            results.mapNotNull { r ->
+                val map = r as? Map<String, Any?> ?: return@mapNotNull null
+                val name = map["name"] as? String ?: return@mapNotNull null
+                val lat = (map["latitude"] as? Number)?.toDouble() ?: return@mapNotNull null
+                val lon = (map["longitude"] as? Number)?.toDouble() ?: return@mapNotNull null
+                val country = map["country"] as? String ?: ""
+                val countryCode = (map["country_code"] as? String ?: "").uppercase().take(2)
+                val admin1 = map["admin1"] as? String ?: ""  // 省份/州
+                val timezone = map["timezone"] as? String ?: "UTC"
+                val displayName = if (admin1.isNotEmpty()) "$name, $admin1" else name
+                WeatherLocation(
+                    name = displayName,
+                    pinyin = "",  // 动态搜索的城市没有拼音
+                    pinyinInitial = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                    latitude = lat,
+                    longitude = lon,
+                    timezone = timezone,
+                    country = country,
+                    countryCode = countryCode
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    // ── 通过 GPS 坐标反向查询城市名（Open-Meteo Geocoding）──
+    suspend fun reverseGeocode(lat: Double, lon: Double): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&accept-language=zh"
+            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            connection.setRequestProperty("User-Agent", "WeatherClock/1.0")
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            val response = connection.inputStream.bufferedReader().readText()
+            val json = parseJson(response)
+            val address = json["address"] as? Map<String, Any?> ?: emptyMap()
+            val city = address["city"] as? String
+                ?: address["town"] as? String
+                ?: address["village"] as? String
+                ?: address["municipality"] as? String
+                ?: address["state"] as? String
+                ?: address["country"] as? String
+                ?: return@withContext null
+            val country = address["country"] as? String ?: ""
+            "$city, $country"
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     // ── 天气数据 ──
     suspend fun getWeather(location: WeatherLocation): Result<WeatherData> = withContext(Dispatchers.IO) {
         try {

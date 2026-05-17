@@ -795,12 +795,9 @@ private fun RightPanel(
         }
 
         // Use LazyRow so 7 days scroll horizontally instead of being squished
-        val totalWidth = 1280  // approximate landscape width in dp (for weight calculation)
-        val cardWidth = ((totalWidth * 0.85) / 7).dp  // each card ~1/7 of available width
-
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             contentPadding = PaddingValues(end = 8.dp)
         ) {
             items(uiState.forecast.size) { index ->
@@ -809,7 +806,7 @@ private fun RightPanel(
                     item = forecast,
                     isToday = index == 0,
                     colors = colors,
-                    modifier = Modifier.width(cardWidth.coerceAtLeast(100.dp))
+                    modifier = Modifier.width(80.dp)
                 )
             }
         }
@@ -972,30 +969,30 @@ private fun LayoutEditorScreen(
 @Composable private fun ForecastCard(item: DayForecastItem, isToday: Boolean, colors: ThemeColors, modifier: Modifier = Modifier) {
     val cardBg = if (isToday) colors.accentColor.copy(alpha = 0.18f) else colors.cardHighlight
     Card(
-        modifier = modifier.defaultMinSize(minWidth = 100.dp, minHeight = 140.dp),
+        modifier = modifier.width(80.dp).heightIn(min = 110.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 item.dayLabel,
-                fontSize = if (isToday) 14.sp else 12.sp,
+                fontSize = if (isToday) 13.sp else 11.sp,
                 color = if (isToday) colors.accentColor else colors.textSecondary,
                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium
             )
-            Text(item.icon, fontSize = 28.sp)
+            Text(item.icon, fontSize = 24.sp)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(item.tempMax, fontSize = 19.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
-                Text(item.tempMin, fontSize = 14.sp, color = colors.textSecondary.copy(alpha = 0.65f))
+                Text(item.tempMax, fontSize = 16.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                Text(item.tempMin, fontSize = 12.sp, color = colors.textSecondary.copy(alpha = 0.65f))
             }
             if (item.precipProb.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("💧", fontSize = 11.sp)
-                    Text(item.precipProb, fontSize = 11.sp, color = Color(0xFF64B5F6))
+                    Text("💧", fontSize = 10.sp)
+                    Text(item.precipProb, fontSize = 10.sp, color = Color(0xFF64B5F6))
                 }
             } else {
                 Spacer(Modifier.height(0.dp))
