@@ -65,6 +65,7 @@ jobs:
             | 🖥️ ARM64 | `app-arm64-v8a-release-unsigned.apk` |
             | 🔧 ARM32 | `app-armeabi-v7a-release-unsigned.apk` |
             | 💻 x86_64 | `app-x86_64-release-unsigned.apk` |
+            | 💻 x86 | `app-x86-release-unsigned.apk` |
 
             ### 更新内容
             ${{ inputs.notes }}
