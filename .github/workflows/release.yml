@@ -87,6 +87,7 @@ jobs:
             - 首次安装需开启「未知来源」权限
           draft: false
           prerelease: false
+          allow_updates: true
           generate_release_notes: false
           files: |
             app/build/outputs/apk/release/app-universal-release.apk
