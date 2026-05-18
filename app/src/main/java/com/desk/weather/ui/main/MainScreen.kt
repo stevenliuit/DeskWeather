@@ -48,6 +48,7 @@ fun MainScreen(
     onLocationChange: (Int) -> Unit = {},
     isRoundDisplay: Boolean = false,
     roundDiameter: androidx.compose.ui.unit.Dp? = null,
+    gravityRotation: Int = 0,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val colors = uiState.themeColors
@@ -164,12 +165,16 @@ fun MainScreen(
         Modifier.fillMaxSize()
     }
 
-    Box(
-        modifier = boxModifier
-            .background(brush = Brush.verticalGradient(
-                colors = bgColors, startY = 0f, endY = 2000f + animatedOffset * 300f
-            ))
-    ) {
+    // 主内容应用重力翻转
+            Box(
+                modifier = boxModifier
+                    .graphicsLayer {
+                        rotationZ = gravityRotation.toFloat()
+                    }
+                    .background(brush = Brush.verticalGradient(
+                        colors = bgColors, startY = 0f, endY = 2000f + animatedOffset * 300f
+                    ))
+            ) {
         // ── 动态天气粒子 ──
         if (colors.isDynamicWeather) {
             Canvas(modifier = Modifier.fillMaxSize()) {

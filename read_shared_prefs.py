@@ -9,12 +9,12 @@ import json
 import sys
 import os
 
-PACKAGE = "com.example.weatherclock"
-PREFS_FILE = "/data/data/com.example.weatherclock/shared_prefs/com.example.weatherclock_preferences.xml"
+PACKAGE = "com.desk.weather"
+PREFS_FILE = "/data/data/com.desk.weather/shared_prefs/com.desk.weather_preferences.xml"
 
 def get_prefs_xml():
     result = subprocess.run(
-        ["adb", "shell", f"run-as {PACKAGE} cat shared_prefs/com.example.weatherclock_preferences.xml"],
+        ["adb", "shell", f"run-as {PACKAGE} cat shared_prefs/com.desk.weather_preferences.xml"],
         capture_output=True, timeout=10, text=True
     )
     if result.returncode != 0:
@@ -55,7 +55,7 @@ def parse_and_convert(xml_str):
                 result[name] = float(child.attrib.get("value", "0.0"))
             elif tag == "long":
                 result[name] = int(child.attrib.get("value", "0"))
-            elif tag == "string-set"):
+            elif tag == "string-set":
                 # Skip sets for now
                 result[name] = []
             else:

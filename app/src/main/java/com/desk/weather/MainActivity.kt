@@ -7,6 +7,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.graphics.Path
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -47,12 +51,47 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // 重力翻转：0=正常横屏，180=翻转横屏
+    private var gravityRotationDegrees by mutableIntStateOf(0)
+    private var sensorManager: SensorManager? = null
+    private val sensorListener = object : SensorEventListener {
+        private var lastFlipTime = 0L
+
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+                val x = event.values[0]
+                // 检测是否翻转了180°（倒置横屏）
+                // 正常横屏：x ≈ 0 或略正；翻转后：x ≈ 0 或略负（符号相反）
+                // 用延迟防抖避免频繁切换
+                val now = System.currentTimeMillis()
+                if (now - lastFlipTime > 800) {
+                    // 触发翻转阈值：|x| < 2 表示接近水平，再根据符号判断方向
+                    if (kotlin.math.abs(x) < 2) {
+                        val newRotation = if (x >= 0) 0 else 180
+                        if (newRotation != gravityRotationDegrees) {
+                            gravityRotationDegrees = newRotation
+                            lastFlipTime = now
+                        }
+                    }
+                }
+            }
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+    }
+
     @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val filter = IntentFilter("com.desk.weather.CONFIG_UPDATE")
         registerReceiver(configUpdateReceiver, filter, RECEIVER_NOT_EXPORTED)
+
+        // 注册加速度计监听，支持横向重力翻转
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let { sensor ->
+            sensorManager?.registerListener(sensorListener, sensor, SensorManager.SENSOR_DELAY_UI)
+        }
 
         // Force landscape for TV/tablet/smart display
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
@@ -118,7 +157,8 @@ class MainActivity : ComponentActivity() {
                                     viewModel = viewModel,
                                     onLocationChange = { },
                                     isRoundDisplay = true,
-                                    roundDiameter = roundDiameter
+                                    roundDiameter = roundDiameter,
+                                    gravityRotation = gravityRotationDegrees
                                 )
                             }
                         }
@@ -127,7 +167,8 @@ class MainActivity : ComponentActivity() {
                             viewModel = viewModel,
                             onLocationChange = { },
                             isRoundDisplay = false,
-                            roundDiameter = null
+                            roundDiameter = null,
+                            gravityRotation = gravityRotationDegrees
                         )
                     }
                 }
@@ -138,5 +179,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(configUpdateReceiver)
+        sensorManager?.unregisterListener(sensorListener)
     }
 }
