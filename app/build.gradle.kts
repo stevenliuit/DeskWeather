@@ -21,15 +21,19 @@ android {
     }
 
     signingConfigs {
-        // 本地开发签名（keystore.jks 位于项目根目录，请勿提交到 Git）
-        // CI/Release 构建使用 unsigned APK（见 release.yml）
+        create("release") {
+            storeFile = rootProject.file("keystore.jks")
+            storePassword = "DeskWeather2026!"
+            keyAlias = "deskweather"
+            keyPassword = "DeskWeather2026!"
+        }
     }
 
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // 不配置 signingConfig，输出 unsigned APK
+            signingConfig = signingConfigs.getByName("release")
         }
         getByName("debug") {
             // 调试构建使用默认签名

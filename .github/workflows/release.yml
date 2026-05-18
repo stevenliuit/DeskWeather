@@ -34,6 +34,17 @@ jobs:
           compile-sdk: '36'
           build-tools: '36.0.0'
 
+      - name: Restore keystore from Secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+            echo "✓ keystore restored"
+          else
+            echo "WARNING: KEYSTORE_BASE64 not set, release APK will be unsigned"
+          fi
+
       - name: Grant execute permission
         run: chmod +x gradlew
 
@@ -61,11 +72,11 @@ jobs:
             ### 下载 APK
             | 架构 | 文件 |
             |------|------|
-            | 📱 通用 | `app-universal-release-unsigned.apk` |
-            | 🖥️ ARM64 | `app-arm64-v8a-release-unsigned.apk` |
-            | 🔧 ARM32 | `app-armeabi-v7a-release-unsigned.apk` |
-            | 💻 x86_64 | `app-x86_64-release-unsigned.apk` |
-            | 💻 x86 | `app-x86-release-unsigned.apk` |
+            | 📱 通用 | `app-universal-release.apk` |
+            | 🖥️ ARM64 | `app-arm64-v8a-release.apk` |
+            | 🔧 ARM32 | `app-armeabi-v7a-release.apk` |
+            | 💻 x86_64 | `app-x86_64-release.apk` |
+            | 💻 x86 | `app-x86-release.apk` |
 
             ### 更新内容
             ${{ inputs.notes }}
@@ -77,10 +88,10 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            app/build/outputs/apk/release/app-universal-release-unsigned.apk
-            app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
-            app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk
-            app/build/outputs/apk/release/app-x86_64-release-unsigned.apk
-            app/build/outputs/apk/release/app-x86-release-unsigned.apk
+            app/build/outputs/apk/release/app-universal-release.apk
+            app/build/outputs/apk/release/app-arm64-v8a-release.apk
+            app/build/outputs/apk/release/app-armeabi-v7a-release.apk
+            app/build/outputs/apk/release/app-x86_64-release.apk
+            app/build/outputs/apk/release/app-x86-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
