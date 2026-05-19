@@ -853,20 +853,20 @@ private fun RightPanel(
             // 七天预报：自动换行布局，不再横向滚动
             val forecastItems = uiState.forecast
             val rows = forecastItems.chunked(4) // 每行最多4个
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                 rows.forEach { rowItems ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         rowItems.forEach { forecast ->
                             ForecastCard(
                                 item = forecast,
                                 isToday = forecast == forecastItems.first(),
                                 colors = colors,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.width(80.dp)
                             )
                         }
                         // 填充空白让最后一行对齐
                         repeat(4 - rowItems.size) {
-                            Spacer(Modifier.weight(1f))
+                            Spacer(Modifier.width(80.dp))
                         }
                     }
                 }
@@ -905,12 +905,20 @@ private fun LayoutEditorScreen(
                 // 区域选择标签
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     listOf("left" to "左侧区域", "right" to "右侧区域").forEach { (id, label) ->
+                        val isSelected = uiState.editingZone == id
                         Surface(
                             modifier = Modifier.clickable { onSetEditingZone(id) },
-                            color = if (uiState.editingZone == id) colors.accentColor.copy(alpha = 0.3f) else colors.cardHighlight,
-                            shape = RoundedCornerShape(12.dp)
+                            color = if (isSelected) colors.accentColor else colors.cardHighlight,
+                            shape = RoundedCornerShape(12.dp),
+                            border = if (isSelected) BorderStroke(2.dp, colors.accentColor) else null
                         ) {
-                            Text(label, fontSize = 14.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp))
+                            Text(
+                                label,
+                                fontSize = 14.sp,
+                                color = if (isSelected) Color.White else colors.textPrimary,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
+                            )
                         }
                     }
                 }

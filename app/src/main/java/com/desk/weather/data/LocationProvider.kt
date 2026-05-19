@@ -144,16 +144,19 @@ object LocationProvider {
                     try {
                         fusedClient?.removeLocationUpdates(this)
                     } catch (_: Exception) {}
-                    res.lastLocation?.let { loc ->
-                        continuation.resume(
-                            LocationData(
-                                latitude = loc.latitude,
-                                longitude = loc.longitude,
-                                accuracy = loc.accuracy,
-                                source = getAccuracySource(loc)
+                    if (continuation.isCompleted) return
+                    try {
+                        res.lastLocation?.let { loc ->
+                            continuation.resume(
+                                LocationData(
+                                    latitude = loc.latitude,
+                                    longitude = loc.longitude,
+                                    accuracy = loc.accuracy,
+                                    source = getAccuracySource(loc)
+                                )
                             )
-                        )
-                    } ?: continuation.resume(null)
+                        } ?: continuation.resume(null)
+                    } catch (_: IllegalStateException) { }
                 }
             }
 
@@ -167,11 +170,13 @@ object LocationProvider {
                 // Hard timeout: if no location within 20 seconds, give up
                 val timeoutJob = GlobalScope.launch {
                     kotlinx.coroutines.delay(20_000L)
-                    if (continuation.isActive) {
+                    if (!continuation.isCompleted) {
                         try {
                             fusedClient?.removeLocationUpdates(callback)
                         } catch (_: Exception) {}
-                        continuation.resume(null)
+                        try {
+                            continuation.resume(null)
+                        } catch (_: IllegalStateException) { }
                     }
                 }
 
