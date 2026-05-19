@@ -28,10 +28,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.min
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.desk.weather.data.*
 import com.desk.weather.data.ThemeDefinitions
@@ -315,6 +317,18 @@ private fun MainContent(
     onSetEditingZone: (String) -> Unit, onApplyTemplate: (String) -> Unit,
     airQualityData: AirQualityData?,
 ) {
+    // Adaptive screen sizing
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
+    // Adaptive weight: on narrow screens use equal weights
+    val leftWeight = if (screenWidth < 400.dp) 1f else 1f
+    val rightWeight = if (screenWidth < 400.dp) 1f else 1.35f
+
+    // Adaptive padding
+    val horizontalPadding = if (screenWidth < 400.dp) 16.dp else if (screenWidth < 600.dp) 20.dp else 28.dp
+    val itemSpacing = if (screenWidth < 400.dp) 16.dp else if (screenWidth < 600.dp) 20.dp else 28.dp
+
     when {
         uiState.showLayoutEditor -> LayoutEditorScreen(uiState, colors, onToggleLayoutEditor, onMoveWidget, onToggleWidgetVisibility, onSetEditingZone, onApplyTemplate)
         uiState.isSearchMode -> SearchScreen(
@@ -324,13 +338,13 @@ private fun MainContent(
             onBack = { viewModel.onSearchBack() },
         )
         else -> Row(
-            modifier = Modifier.fillMaxSize().padding(28.dp),
-            horizontalArrangement = Arrangement.spacedBy(28.dp)
+            modifier = Modifier.fillMaxSize().padding(horizontalPadding),
+            horizontalArrangement = Arrangement.spacedBy(itemSpacing)
         ) {
-            LeftPanel(Modifier.weight(1f), uiState, colors, onThemeCycle, onThemeSelected, airQualityData)
+            LeftPanel(Modifier.weight(leftWeight), uiState, colors, onThemeCycle, onThemeSelected, airQualityData)
             val handleSearchOpen = { viewModel.onSearchOpen() }
             RightPanel(
-                Modifier.weight(1.35f), uiState, colors,
+                Modifier.weight(rightWeight), uiState, colors,
                 onCitySelect, onLocationRequest,
                 onSearchOpen = handleSearchOpen,
                 onPinyinNavClick = onPinyinNavClick,
@@ -528,14 +542,24 @@ private fun LeftPanel(
     var showThemeSheet by remember { mutableStateOf(false) }
     var showAirQualitySheet by remember { mutableStateOf(false) }
 
-    // Read widget visibility from layoutConfig
-    val leftZoneWidgets = uiState.layoutConfig.zones.find { it.id == "left" }?.widgets ?: emptyList()
+    // Read widget visibility from layoutConfig and sort by order
+    val leftZoneWidgets = uiState.layoutConfig.zones.find { it.id == "left" }?.widgets?.sortedBy { it.order } ?: emptyList()
     val clockVisible = leftZoneWidgets.find { it.type == "CLOCK" }?.visible ?: true
     val dateVisible = leftZoneWidgets.find { it.type == "DATE" }?.visible ?: true
     val locationVisible = leftZoneWidgets.find { it.type == "LOCATION" }?.visible ?: true
     val temperatureVisible = leftZoneWidgets.find { it.type == "TEMPERATURE" }?.visible ?: true
     val detailsVisible = leftZoneWidgets.find { it.type == "DETAILS" }?.visible ?: true
     val airQualityVisible = leftZoneWidgets.find { it.type == "AIR_QUALITY" }?.visible ?: true
+
+    // Adaptive screen sizing
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
+    // Adaptive font sizes
+    val clockFontSize = if (screenWidth < 400.dp) 48.sp else if (screenWidth < 600.dp) 58.sp else 68.sp
+    val temperatureFontSize = if (screenWidth < 400.dp) 48.sp else if (screenWidth < 600.dp) 58.sp else 68.sp
+    val weatherIconSize = if (screenWidth < 400.dp) 56.sp else if (screenWidth < 600.dp) 68.sp else 80.sp
+    val locationNameFontSize = if (screenWidth < 400.dp) 24.sp else if (screenWidth < 600.dp) 27.sp else 30.sp
 
     Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
         // 顶部：日期/时间
@@ -547,7 +571,7 @@ private fun LeftPanel(
                         Spacer(Modifier.height(4.dp))
                     }
                     if (clockVisible) {
-                        Text(uiState.currentTime, fontSize = 68.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+                        Text(uiState.currentTime, fontSize = clockFontSize, color = colors.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -572,16 +596,16 @@ private fun LeftPanel(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("📍", fontSize = 22.sp)
                     Spacer(Modifier.width(6.dp))
-                    Text(uiState.locationName, fontSize = 30.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                    Text(uiState.locationName, fontSize = locationNameFontSize, color = colors.textPrimary, fontWeight = FontWeight.Medium)
                 }
                 Spacer(Modifier.height(20.dp))
             }
             if (temperatureVisible) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(uiState.weatherIcon, fontSize = 80.sp)
+                    Text(uiState.weatherIcon, fontSize = weatherIconSize)
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text(uiState.temperature, fontSize = 68.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                        Text(uiState.temperature, fontSize = temperatureFontSize, color = colors.textPrimary, fontWeight = FontWeight.Bold)
                         Text("${uiState.weatherDescription} ${uiState.feelsLike}", fontSize = 16.sp, color = colors.textSecondary)
                     }
                 }
@@ -808,9 +832,23 @@ private fun RightPanel(
 ) {
     Column(modifier = modifier.fillMaxHeight()) {
         // 工具栏
-        val rightZoneWidgets = uiState.layoutConfig.zones.find { it.id == "right" }?.widgets ?: emptyList()
+        val rightZoneWidgets = uiState.layoutConfig.zones.find { it.id == "right" }?.widgets?.sortedBy { it.order } ?: emptyList()
         val forecastVisible = rightZoneWidgets.find { it.type == "FORECAST_7D" }?.visible ?: true
         val locationBtnVisible = rightZoneWidgets.find { it.type == "LOCATION" }?.visible ?: true
+
+        // Adaptive screen sizing
+        val configuration = LocalConfiguration.current
+        val screenWidth = configuration.screenWidthDp.dp
+
+        // Adaptive forecast card width
+        val cardWidth = when {
+            screenWidth < 400.dp -> 64.dp
+            screenWidth < 600.dp -> 72.dp
+            else -> 80.dp
+        }
+
+        // Adaptive font sizes
+        val toolbarFontSize = if (screenWidth < 400.dp) 12.sp else 14.sp
 
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             if (locationBtnVisible) {
@@ -819,12 +857,12 @@ private fun RightPanel(
             }
             Surface(modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onSearchOpen), color = colors.cardHighlight, shape = RoundedCornerShape(16.dp)) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("🔍", fontSize = 18.sp); Spacer(Modifier.width(8.dp)); Text("搜索城市", fontSize = 14.sp, color = colors.textPrimary)
+                    Text("🔍", fontSize = 18.sp); Spacer(Modifier.width(8.dp)); Text("搜索城市", fontSize = toolbarFontSize, color = colors.textPrimary)
                 }
             }
             Spacer(Modifier.width(10.dp))
             Surface(modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onLayoutEditorClick), color = colors.cardHighlight, shape = RoundedCornerShape(16.dp)) {
-                Text("📐 布局", fontSize = 14.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
+                Text("📐 布局", fontSize = toolbarFontSize, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
             }
             Spacer(Modifier.weight(1f))
             Text("🌍 ${uiState.locationName}", fontSize = 13.sp, color = colors.textSecondary)
@@ -861,12 +899,12 @@ private fun RightPanel(
                                 item = forecast,
                                 isToday = forecast == forecastItems.first(),
                                 colors = colors,
-                                modifier = Modifier.width(80.dp)
+                                modifier = Modifier.width(cardWidth)
                             )
                         }
                         // 填充空白让最后一行对齐
                         repeat(4 - rowItems.size) {
-                            Spacer(Modifier.width(80.dp))
+                            Spacer(Modifier.width(cardWidth))
                         }
                     }
                 }
