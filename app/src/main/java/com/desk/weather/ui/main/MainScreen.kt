@@ -5,16 +5,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -31,9 +28,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.min
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.desk.weather.data.*
 import com.desk.weather.data.ThemeDefinitions
@@ -80,7 +79,7 @@ fun MainScreen(
             isSnowy -> 80
             isLightning -> 60
             isFoggy -> 40
-            else -> 50  // 晴天的星星/萤火虫
+            else -> 50
         }
 
         repeat(count) {
@@ -103,17 +102,14 @@ fun MainScreen(
                 isSnow = isSnowy,
                 isLightning = isLightning,
                 isFog = isFoggy,
-                // 雪花特有
                 angle = Random.nextFloat() * 360f,
                 rotSpeed = (Random.nextFloat() - 0.5f) * 2f,
-                // 萤火虫
                 pulse = Random.nextFloat() * 360f,
                 pulseSpeed = 1f + Random.nextFloat() * 2f,
             ))
         }
     }
 
-    // 粒子动画循环
     var lightningFlash by remember { mutableStateOf(0f) }
     LaunchedEffect(colors.isDynamicWeather, uiState.weatherIcon) {
         if (!colors.isDynamicWeather) return@LaunchedEffect
@@ -134,7 +130,6 @@ fun MainScreen(
                     particles[i] = updated
                 }
             }
-            // 闪电效果
             if (isLightning && Random.nextFloat() < 0.003f) {
                 lightningFlash = 1f
                 delay(80)
@@ -167,16 +162,13 @@ fun MainScreen(
         Modifier.fillMaxSize()
     }
 
-    // 主内容应用重力翻转
-            Box(
-                modifier = boxModifier
-                    .graphicsLayer {
-                        rotationZ = gravityRotation.toFloat()
-                    }
-                    .background(brush = Brush.verticalGradient(
-                        colors = bgColors, startY = 0f, endY = 2000f + animatedOffset * 300f
-                    ))
-            ) {
+    Box(
+        modifier = boxModifier
+            .graphicsLayer { rotationZ = gravityRotation.toFloat() }
+            .background(brush = Brush.verticalGradient(
+                colors = bgColors, startY = 0f, endY = 2000f + animatedOffset * 300f
+            ))
+    ) {
         // ── 动态天气粒子 ──
         if (colors.isDynamicWeather) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -185,11 +177,10 @@ fun MainScreen(
                         p.isFog -> 0.05f + 0.03f * sin(p.pulse * 0.05f)
                         p.isRain -> 0.4f * p.opacity
                         p.isSnow -> 0.6f * p.opacity
-                        else -> 0.3f + 0.2f * sin(p.pulse * 0.1f)  // 萤火虫闪烁
+                        else -> 0.3f + 0.2f * sin(p.pulse * 0.1f)
                     }
                     when {
                         p.isRain -> {
-                            // 雨滴：斜线
                             drawLine(
                                 color = Color.White.copy(alpha = alpha),
                                 start = Offset(p.x * size.width, p.y * size.height),
@@ -198,7 +189,6 @@ fun MainScreen(
                             )
                         }
                         p.isSnow -> {
-                            // 雪花：旋转的六边形点
                             drawCircle(
                                 color = Color.White.copy(alpha = alpha),
                                 radius = p.size,
@@ -206,7 +196,6 @@ fun MainScreen(
                             )
                         }
                         p.isLightning -> {
-                            // 闪电：随机闪烁点
                             if (Random.nextFloat() < 0.1f) {
                                 drawCircle(
                                     color = Color.Yellow.copy(alpha = 0.8f),
@@ -216,7 +205,6 @@ fun MainScreen(
                             }
                         }
                         p.isFog -> {
-                            // 雾气：大面积模糊圆
                             drawCircle(
                                 color = Color.White.copy(alpha = alpha),
                                 radius = p.size * 20,
@@ -224,7 +212,6 @@ fun MainScreen(
                             )
                         }
                         else -> {
-                            // 萤火虫
                             drawCircle(
                                 color = Color(0xFFFFFF99).copy(alpha = alpha),
                                 radius = p.size,
@@ -246,17 +233,6 @@ fun MainScreen(
                 .clip(CircleShape)
                 .background(brush = Brush.radialGradient(
                     colors = listOf(colors.accentColor.copy(alpha = 0.12f), Color.Transparent)
-                ))
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .align(Alignment.BottomStart)
-                .offset(x = (-100).dp, y = (-200).dp)
-                .size(350.dp)
-                .clip(CircleShape)
-                .background(brush = Brush.radialGradient(
-                    colors = listOf(colors.accentColor.copy(alpha = 0.08f), Color.Transparent)
                 ))
         )
 
@@ -289,10 +265,7 @@ fun MainScreen(
                 onTogglePin = { viewModel.togglePin(it) },
                 onIsFavorite = { viewModel.isFavorite(it) },
                 onIsPinned = { viewModel.isPinned(it) },
-                onMoveWidget = { z, f, t -> viewModel.moveWidget(z, f, t) },
-                onToggleWidgetVisibility = { z, w -> viewModel.toggleWidgetVisibility(z, w) },
-                onSetEditingZone = { viewModel.setEditingZone(it) },
-                onApplyTemplate = { viewModel.applyTemplate(it) },
+                onSetVisualStyle = { viewModel.setVisualStyle(it) },
                 airQualityData = viewModel.getAirQualityData(),
             )
         }
@@ -300,7 +273,7 @@ fun MainScreen(
 }
 
 // ============================================================
-// 主内容区
+// 主内容区（无左右分区，单列自适应布局）
 // ============================================================
 @Composable
 private fun MainContent(
@@ -313,325 +286,219 @@ private fun MainContent(
     onThemeSelected: (AppTheme) -> Unit, onToggleLayoutEditor: () -> Unit,
     onToggleFavorite: (WeatherLocation) -> Unit, onTogglePin: (WeatherLocation) -> Unit,
     onIsFavorite: (WeatherLocation) -> Boolean, onIsPinned: (WeatherLocation) -> Boolean,
-    onMoveWidget: (String, Int, Int) -> Unit, onToggleWidgetVisibility: (String, String) -> Unit,
-    onSetEditingZone: (String) -> Unit, onApplyTemplate: (String) -> Unit,
+    onSetVisualStyle: (VisualStyle) -> Unit,
     airQualityData: AirQualityData?,
 ) {
-    // Adaptive screen sizing
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
+    val screenHeight = configuration.screenHeightDp.dp
 
-    // Adaptive weight: on narrow screens use equal weights
-    val leftWeight = if (screenWidth < 400.dp) 1f else 1f
-    val rightWeight = if (screenWidth < 400.dp) 1f else 1.35f
-
-    // Adaptive padding
-    val horizontalPadding = if (screenWidth < 400.dp) 16.dp else if (screenWidth < 600.dp) 20.dp else 28.dp
-    val itemSpacing = if (screenWidth < 400.dp) 16.dp else if (screenWidth < 600.dp) 20.dp else 28.dp
+    // Adaptive sizing based on screen dimensions
+    val isCompact = screenWidth < 400.dp
+    val isMedium = screenWidth in 400.dp..599.dp
 
     when {
-        uiState.showLayoutEditor -> LayoutEditorScreen(uiState, colors, onToggleLayoutEditor, onMoveWidget, onToggleWidgetVisibility, onSetEditingZone, onApplyTemplate)
+        uiState.showLayoutEditor -> LayoutEditorScreen(
+            uiState, colors, onToggleLayoutEditor, onSetVisualStyle
+        )
         uiState.isSearchMode -> SearchScreen(
             uiState, colors, onSearchQueryChange, onSearchFocus,
             onCitySelectedFromSearch, onPinyinNavClick,
             onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned,
             onBack = { viewModel.onSearchBack() },
         )
-        else -> Row(
-            modifier = Modifier.fillMaxSize().padding(horizontalPadding),
-            horizontalArrangement = Arrangement.spacedBy(itemSpacing)
-        ) {
-            LeftPanel(Modifier.weight(leftWeight), uiState, colors, onThemeCycle, onThemeSelected, airQualityData)
-            val handleSearchOpen = { viewModel.onSearchOpen() }
-            RightPanel(
-                Modifier.weight(rightWeight), uiState, colors,
-                onCitySelect, onLocationRequest,
-                onSearchOpen = handleSearchOpen,
-                onPinyinNavClick = onPinyinNavClick,
-                onLayoutEditorClick = onToggleLayoutEditor,
-            )
-        }
+        else -> SingleColumnLayout(
+            viewModel = viewModel,
+            uiState = uiState, colors = colors,
+            screenWidth = screenWidth, screenHeight = screenHeight,
+            onThemeCycle = onThemeCycle, onThemeSelected = onThemeSelected,
+            onLocationRequest = onLocationRequest,
+            onSearchOpen = { viewModel.onSearchOpen() },
+            onPinyinNavClick = onPinyinNavClick,
+            onLayoutEditorClick = onToggleLayoutEditor,
+            airQualityData = airQualityData,
+        )
     }
 }
 
 // ============================================================
-// 搜索界面（含城市管理）
+// 单列自适应布局（替代原有左右分区）
 // ============================================================
 @Composable
-private fun SearchScreen(
+private fun SingleColumnLayout(
+    viewModel: MainScreenViewModel,
     uiState: MainUiState, colors: ThemeColors,
-    onSearchQueryChange: (String) -> Unit, onSearchFocus: (Boolean) -> Unit,
-    onCitySelected: (WeatherLocation) -> Unit, onPinyinNavClick: (String) -> Unit,
-    onToggleFavorite: (WeatherLocation) -> Unit, onTogglePin: (WeatherLocation) -> Unit,
-    onIsFavorite: (WeatherLocation) -> Boolean, onIsPinned: (WeatherLocation) -> Boolean,
-    onBack: () -> Unit,
-) {
-    Row(modifier = Modifier.fillMaxSize().padding(28.dp)) {
-        Column(Modifier.weight(1f).fillMaxHeight()) {
-            // 返回按钮
-            Surface(
-                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack),
-                color = colors.cardHighlight
-            ) {
-                Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("← 返回", fontSize = 14.sp, color = colors.textPrimary)
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            // 搜索框
-            SearchBar(query = uiState.searchQuery, colors = colors, onQueryChange = onSearchQueryChange, onFocusChange = onSearchFocus)
-            Spacer(Modifier.height(12.dp))
-
-            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                // ── 有搜索词时显示结果 ──
-                if (uiState.searchQuery.isNotBlank()) {
-                    if (uiState.searchResults.isEmpty()) {
-                        item { Text("未找到城市：「${uiState.searchQuery}」", color = colors.textSecondary, fontSize = 16.sp, modifier = Modifier.padding(16.dp)) }
-                    } else {
-                        item { Text("找到 ${uiState.searchResults.size} 个城市", fontSize = 13.sp, color = colors.textSecondary, modifier = Modifier.padding(bottom = 4.dp)) }
-                        items(uiState.searchResults) { city ->
-                            CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned)
-                        }
-                    }
-                } else {
-                    // ── 无搜索词：置顶 + 收藏 + 最近 ──
-                    val pinned = uiState.pinnedLocations
-                    val favorites = uiState.favoriteLocations.filter { !pinned.contains(it) }
-                    val recent = uiState.recentLocations.filter { !pinned.contains(it) && !favorites.contains(it) }
-
-                    if (pinned.isNotEmpty()) {
-                        item { SectionHeader("📌 置顶城市", colors) }
-                        items(pinned) { city ->
-                            CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned, showPinButton = false)
-                        }
-                    }
-                    if (favorites.isNotEmpty()) {
-                        item { SectionHeader("⭐ 收藏城市", colors) }
-                        items(favorites) { city ->
-                            CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned)
-                        }
-                    }
-                    if (recent.isNotEmpty()) {
-                        item { SectionHeader("🕐 最近访问", colors) }
-                        items(recent.take(5)) { city ->
-                            CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned, showFavoriteButton = false)
-                        }
-                    }
-
-                    // ── 全量城市（按拼音）──
-                    item { Spacer(Modifier.height(8.dp)); SectionHeader("🌍 所有城市（A-Z 快速导航）", colors) }
-                    uiState.pinyinInitials.forEach { initial ->
-                        val citiesForLetter = uiState.locationsByPinyin[initial] ?: emptyList()
-                        if (citiesForLetter.isNotEmpty()) {
-                            item { Text("  $initial", fontSize = 13.sp, color = colors.accentColor, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
-                            items(citiesForLetter) { city ->
-                                CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── 拼音首字母侧边栏 ──
-        PinyinSidebar(initials = uiState.pinyinInitials, onLetterClick = onPinyinNavClick, colors = colors)
-    }
-}
-
-@Composable
-private fun SectionHeader(text: String, colors: ThemeColors) {
-    Text(text, fontSize = 15.sp, color = colors.accentColor, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
-}
-
-@Composable
-private fun SearchBar(query: String, colors: ThemeColors, onQueryChange: (String) -> Unit, onFocusChange: (Boolean) -> Unit) {
-    Surface(color = colors.cardHighlight, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-                Text("🔍", fontSize = 20.sp)
-            }
-            Spacer(Modifier.width(10.dp))
-            Box(Modifier.weight(1f)) {
-                BasicTextField(
-                    value = query, onValueChange = onQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = TextStyle(color = colors.textPrimary, fontSize = 17.sp),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box {
-                            if (query.isEmpty()) Text("搜索城市（中文/拼音/首字母）...", color = colors.textSecondary.copy(alpha = 0.7f), fontSize = 17.sp)
-                            innerTextField()
-                        }
-                    },
-                )
-            }
-            if (query.isNotEmpty()) {
-                Surface(modifier = Modifier
-                    .size(24.dp)
-                    .clickable { onQueryChange("") },
-                    color = colors.textSecondary.copy(alpha = 0.3f), shape = CircleShape
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text("✕", fontSize = 12.sp, color = colors.textPrimary)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PinyinSidebar(initials: List<String>, onLetterClick: (String) -> Unit, colors: ThemeColors) {
-    Column(
-        modifier = Modifier.width(36.dp).fillMaxHeight()
-            .background(colors.cardHighlight.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-            .padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly
-    ) {
-        initials.forEach { initial ->
-            Text(initial, fontSize = 14.sp, color = colors.accentColor, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable { onLetterClick(initial) }.padding(vertical = 2.dp))
-        }
-    }
-}
-
-@Composable
-private fun CityListItem(
-    city: WeatherLocation, uiState: MainUiState, colors: ThemeColors,
-    onCitySelected: (WeatherLocation) -> Unit,
-    onToggleFavorite: (WeatherLocation) -> Unit, onTogglePin: (WeatherLocation) -> Unit,
-    onIsFavorite: (WeatherLocation) -> Boolean, onIsPinned: (WeatherLocation) -> Boolean,
-    showFavoriteButton: Boolean = true, showPinButton: Boolean = true,
-) {
-    val isSelected = uiState.availableLocations.getOrNull(uiState.selectedLocationIndex)?.name == city.name
-    Surface(
-        color = if (isSelected) colors.accentColor.copy(alpha = 0.2f) else colors.cardHighlight,
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().clickable { onCitySelected(city) }
-    ) {
-        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("🌍", fontSize = 18.sp)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(city.name, fontSize = 17.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-                Text("${city.country} · ${city.pinyinInitial}", fontSize = 12.sp, color = colors.textSecondary)
-            }
-            if (showPinButton) {
-                Text(if (onIsPinned(city)) "📌" else "📍", fontSize = 16.sp, modifier = Modifier.clickable { onTogglePin(city) })
-                Spacer(Modifier.width(6.dp))
-            }
-            if (showFavoriteButton) {
-                Text(if (onIsFavorite(city)) "⭐" else "☆", fontSize = 16.sp, modifier = Modifier.clickable { onToggleFavorite(city) })
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(city.pinyinInitial, fontSize = 14.sp, color = colors.accentColor, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-// ============================================================
-// 左面板
-// ============================================================
-@Composable
-private fun LeftPanel(
-    modifier: Modifier, uiState: MainUiState, colors: ThemeColors,
+    screenWidth: androidx.compose.ui.unit.Dp, screenHeight: androidx.compose.ui.unit.Dp,
     onThemeCycle: () -> Unit, onThemeSelected: (AppTheme) -> Unit,
+    onLocationRequest: () -> Unit, onSearchOpen: () -> Unit,
+    onPinyinNavClick: (String) -> Unit, onLayoutEditorClick: () -> Unit,
     airQualityData: AirQualityData?,
 ) {
+    val style = uiState.layoutConfig.visualStyle
+    val layoutType = style.layoutType
+    val isCompact = screenWidth < 400.dp
+    val isMedium = screenWidth in 400.dp..599.dp
+
+    // 布局类型决定字号大小
+    val clockSize = when (layoutType) {
+        LayoutType.TODAY_DETAIL -> if (isCompact) 48.sp else if (isMedium) 58.sp else 72.sp
+        LayoutType.WEEK_OVERVIEW -> if (isCompact) 40.sp else if (isMedium) 50.sp else 64.sp
+        LayoutType.MINIMAL_CLOCK -> if (isCompact) 72.sp else if (isMedium) 88.sp else 112.sp
+    }
+    val dateSize = when (layoutType) {
+        LayoutType.TODAY_DETAIL -> if (isCompact) 18.sp else if (isMedium) 22.sp else 28.sp
+        LayoutType.WEEK_OVERVIEW -> if (isCompact) 16.sp else if (isMedium) 18.sp else 24.sp
+        LayoutType.MINIMAL_CLOCK -> if (isCompact) 14.sp else if (isMedium) 16.sp else 20.sp
+    }
+    val temperatureSize = when (layoutType) {
+        LayoutType.TODAY_DETAIL -> if (isCompact) 56.sp else if (isMedium) 72.sp else 96.sp
+        LayoutType.WEEK_OVERVIEW -> if (isCompact) 40.sp else if (isMedium) 52.sp else 68.sp
+        LayoutType.MINIMAL_CLOCK -> if (isCompact) 32.sp else if (isMedium) 40.sp else 52.sp
+    }
+    val weatherIconSize = when (layoutType) {
+        LayoutType.TODAY_DETAIL -> if (isCompact) 64.sp else if (isMedium) 82.sp else 108.sp
+        LayoutType.WEEK_OVERVIEW -> if (isCompact) 44.sp else if (isMedium) 56.sp else 72.sp
+        LayoutType.MINIMAL_CLOCK -> if (isCompact) 32.sp else if (isMedium) 40.sp else 52.sp
+    }
+    val locationSize = when (layoutType) {
+        LayoutType.TODAY_DETAIL -> if (isCompact) 16.sp else if (isMedium) 20.sp else 24.sp
+        LayoutType.WEEK_OVERVIEW -> if (isCompact) 14.sp else if (isMedium) 16.sp else 20.sp
+        LayoutType.MINIMAL_CLOCK -> if (isCompact) 14.sp else if (isMedium) 16.sp else 18.sp
+    }
+    val spacing = when (layoutType) {
+        LayoutType.TODAY_DETAIL -> if (isCompact) 10.dp else 16.dp
+        LayoutType.WEEK_OVERVIEW -> if (isCompact) 8.dp else 12.dp
+        LayoutType.MINIMAL_CLOCK -> if (isCompact) 6.dp else 10.dp
+    }
+    val detailsSpacing = when (layoutType) {
+        LayoutType.TODAY_DETAIL -> if (isCompact) 32.dp else 48.dp
+        LayoutType.WEEK_OVERVIEW -> if (isCompact) 20.dp else 32.dp
+        LayoutType.MINIMAL_CLOCK -> if (isCompact) 16.dp else 24.dp
+    }
+
     var showThemeSheet by remember { mutableStateOf(false) }
     var showAirQualitySheet by remember { mutableStateOf(false) }
 
-    // Read widget visibility from layoutConfig and sort by order
-    val leftZoneWidgets = uiState.layoutConfig.zones.find { it.id == "left" }?.widgets?.sortedBy { it.order } ?: emptyList()
-    val clockVisible = leftZoneWidgets.find { it.type == "CLOCK" }?.visible ?: true
-    val dateVisible = leftZoneWidgets.find { it.type == "DATE" }?.visible ?: true
-    val locationVisible = leftZoneWidgets.find { it.type == "LOCATION" }?.visible ?: true
-    val temperatureVisible = leftZoneWidgets.find { it.type == "TEMPERATURE" }?.visible ?: true
-    val detailsVisible = leftZoneWidgets.find { it.type == "DETAILS" }?.visible ?: true
-    val airQualityVisible = leftZoneWidgets.find { it.type == "AIR_QUALITY" }?.visible ?: true
+    // 水平内边距
+    val hPadding = when {
+        isCompact -> 16.dp
+        isMedium -> 24.dp
+        else -> 32.dp
+    }
 
-    // Adaptive screen sizing
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-
-    // Adaptive font sizes
-    val clockFontSize = if (screenWidth < 400.dp) 48.sp else if (screenWidth < 600.dp) 58.sp else 68.sp
-    val temperatureFontSize = if (screenWidth < 400.dp) 48.sp else if (screenWidth < 600.dp) 58.sp else 68.sp
-    val weatherIconSize = if (screenWidth < 400.dp) 56.sp else if (screenWidth < 600.dp) 68.sp else 80.sp
-    val locationNameFontSize = if (screenWidth < 400.dp) 24.sp else if (screenWidth < 600.dp) 27.sp else 30.sp
-
-    Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
-        // 顶部：日期/时间
-        Column {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Column {
-                    if (dateVisible) {
-                        Text(uiState.currentDate, fontSize = 18.sp, color = colors.textSecondary)
-                        Spacer(Modifier.height(4.dp))
-                    }
-                    if (clockVisible) {
-                        Text(uiState.currentTime, fontSize = clockFontSize, color = colors.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = hPadding, vertical = 16.dp)
+    ) {
+        // ── 顶部工具栏 ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 定位按钮
+            LocationButton(
+                isLocating = uiState.isLocating,
+                useMyLocation = uiState.useMyLocationEnabled,
+                onClick = onLocationRequest,
+                colors = colors
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // 搜索按钮
+                Surface(
+                    modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onSearchOpen),
+                    color = colors.cardHighlight,
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🔍", fontSize = 16.sp)
+                        Spacer(Modifier.width(6.dp))
+                        Text("搜索", fontSize = 13.sp, color = colors.textPrimary)
                     }
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    ThemeButton(colors = colors, onClick = { showThemeSheet = true })
-                    Spacer(Modifier.height(8.dp))
-                    if (uiState.locationSource.isNotEmpty()) {
-                        Surface(color = colors.cardHighlight, shape = RoundedCornerShape(10.dp)) {
-                            Text(uiState.locationSource, fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.8f), modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
-                        }
-                    }
+                // 布局编辑器按钮
+                Surface(
+                    modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onLayoutEditorClick),
+                    color = colors.cardHighlight,
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(
+                        "📐 布局",
+                        fontSize = 13.sp,
+                        color = colors.textPrimary,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
                 }
-            }
-            Spacer(Modifier.height(6.dp))
-            if (locationVisible) {
-                Text(uiState.timezoneDisplay, fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.6f))
+                // 主题按钮
+                ThemeButton(colors = colors, onClick = { showThemeSheet = true })
             }
         }
 
-        // 底部：天气主信息
-        Column {
-            if (locationVisible) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("📍", fontSize = 22.sp)
-                    Spacer(Modifier.width(6.dp))
-                    Text(uiState.locationName, fontSize = locationNameFontSize, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-                }
-                Spacer(Modifier.height(20.dp))
-            }
-            if (temperatureVisible) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(uiState.weatherIcon, fontSize = weatherIconSize)
-                    Spacer(Modifier.width(12.dp))
+        // ── 错误提示 ──
+        if (uiState.error != null && uiState.locationDenied) {
+            Spacer(Modifier.height(8.dp))
+            Surface(
+                color = Color.Red.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("⚠️", fontSize = 18.sp)
+                    Spacer(Modifier.width(8.dp))
                     Column {
-                        Text(uiState.temperature, fontSize = temperatureFontSize, color = colors.textPrimary, fontWeight = FontWeight.Bold)
-                        Text("${uiState.weatherDescription} ${uiState.feelsLike}", fontSize = 16.sp, color = colors.textSecondary)
+                        Text("定位权限被拒绝", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                        Text("请在系统设置中开启定位权限", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
                     }
                 }
-                Spacer(Modifier.height(28.dp))
             }
-            if (detailsVisible) {
-                Row(horizontalArrangement = Arrangement.spacedBy(36.dp)) {
-                    WeatherDetailItem(emoji = "💧", label = "湿度", value = uiState.humidity, colors = colors)
-                    WeatherDetailItem(emoji = "💨", label = "风速", value = uiState.windSpeed, colors = colors)
-                }
-            }
-            // 空气质量快捷入口
-            if (airQualityVisible && uiState.airQuality != null) {
-                if (detailsVisible) Spacer(Modifier.height(4.dp))
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { showAirQualitySheet = true }) {
-                    Text("🫁", fontSize = 26.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("空气", fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.8f))
-                    Spacer(Modifier.height(2.dp))
-                    Text(uiState.airQuality!!.value, fontSize = 18.sp, color = Color(uiState.airQuality!!.color), fontWeight = FontWeight.SemiBold)
-                }
-            }
+        }
+
+        Spacer(Modifier.height(spacing))
+
+        // ── 布局类型渲染 ──
+        if (layoutType == LayoutType.TODAY_DETAIL) {
+            TodayDetailContent(
+                uiState = uiState, colors = colors,
+                clockSize = clockSize, dateSize = dateSize,
+                temperatureSize = temperatureSize, weatherIconSize = weatherIconSize,
+                locationSize = locationSize, spacing = spacing,
+                screenWidth = screenWidth,
+                showAirQualitySheet = showAirQualitySheet,
+                onAirQualityClick = { showAirQualitySheet = true },
+                modifier = Modifier.weight(1f)
+            )
+        } else if (layoutType == LayoutType.WEEK_OVERVIEW) {
+            WeekOverviewContent(
+                uiState = uiState, colors = colors,
+                clockSize = clockSize, dateSize = dateSize,
+                temperatureSize = temperatureSize, weatherIconSize = weatherIconSize,
+                locationSize = locationSize, spacing = spacing,
+                screenWidth = screenWidth,
+                showAirQualitySheet = showAirQualitySheet,
+                onAirQualityClick = { showAirQualitySheet = true },
+                modifier = Modifier.weight(1f)
+            )
+        } else {
+            MinimalClockContent(
+                uiState = uiState, colors = colors,
+                clockSize = clockSize, dateSize = dateSize,
+                temperatureSize = temperatureSize, weatherIconSize = weatherIconSize,
+                locationSize = locationSize, spacing = spacing,
+                screenWidth = screenWidth,
+                showAirQualitySheet = showAirQualitySheet,
+                onAirQualityClick = { showAirQualitySheet = true },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 
-    // 主题选择居中弹窗（用 Dialog 代替 BottomSheetScaffold，无难看的拖动手柄）
+    // ── 主题选择弹窗 ──
     if (showThemeSheet) {
         AlertDialog(
             onDismissRequest = { showThemeSheet = false },
@@ -673,11 +540,7 @@ private fun LeftPanel(
                             shape = RoundedCornerShape(14.dp),
                             border = if (isSelected) BorderStroke(2.dp, tc.accentColor) else null,
                         ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // 大尺寸渐变预览（60×36dp）
+                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     Modifier
                                         .size(60.dp, 36.dp)
@@ -686,39 +549,13 @@ private fun LeftPanel(
                                 )
                                 Spacer(Modifier.width(14.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(
-                                        theme.displayName,
-                                        fontSize = 16.sp,
-                                        color = tc.textPrimary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        theme.description,
-                                        fontSize = 11.sp,
-                                        color = tc.textSecondary
-                                    )
+                                    Text(theme.displayName, fontSize = 16.sp, color = tc.textPrimary, fontWeight = FontWeight.SemiBold)
+                                    Text(theme.description, fontSize = 11.sp, color = tc.textSecondary)
                                 }
                                 if (isSelected) {
                                     Surface(color = tc.accentColor, shape = CircleShape) {
                                         Text("✓", fontSize = 14.sp, color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                                     }
-                                }
-                            }
-                        }
-                    }
-                    item {
-                        Spacer(Modifier.height(8.dp))
-                        Surface(
-                            color = colors.cardHighlight,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text("💡", fontSize = 16.sp)
-                                Spacer(Modifier.width(10.dp))
-                                Column {
-                                    Text("自动切换", fontSize = 13.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-                                    Text("根据白天/黑夜自动切换日间/夜间主题", fontSize = 11.sp, color = colors.textSecondary)
                                 }
                             }
                         }
@@ -730,16 +567,414 @@ private fun LeftPanel(
         )
     }
 
-    // 空气质量详情底部弹出
+    // ── 空气质量详情 ──
     if (showAirQualitySheet && airQualityData != null) {
         BottomSheetScaffold(
-            sheetContent = {
-                AirQualitySheet(airQualityData, colors)
-            },
+            sheetContent = { AirQualitySheet(airQualityData, colors) },
             containerColor = colors.surfaceColor,
             sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             scaffoldState = rememberBottomSheetScaffoldState(),
-        ) { }
+        ) {}
+    }
+}
+
+// ============================================================
+// 搜索界面
+// ============================================================
+@Composable
+private fun SearchScreen(
+    uiState: MainUiState, colors: ThemeColors,
+    onSearchQueryChange: (String) -> Unit, onSearchFocus: (Boolean) -> Unit,
+    onCitySelected: (WeatherLocation) -> Unit, onPinyinNavClick: (String) -> Unit,
+    onToggleFavorite: (WeatherLocation) -> Unit, onTogglePin: (WeatherLocation) -> Unit,
+    onIsFavorite: (WeatherLocation) -> Boolean, onIsPinned: (WeatherLocation) -> Boolean,
+    onBack: () -> Unit,
+) {
+    val hPadding = 28.dp
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = hPadding, vertical = 16.dp)
+    ) {
+        // 返回按钮
+        Surface(
+            modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack),
+            color = colors.cardHighlight
+        ) {
+            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("← 返回", fontSize = 14.sp, color = colors.textPrimary)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        SearchBar(query = uiState.searchQuery, colors = colors, onQueryChange = onSearchQueryChange, onFocusChange = onSearchFocus)
+        Spacer(Modifier.height(12.dp))
+
+        LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (uiState.searchQuery.isNotBlank()) {
+                if (uiState.searchResults.isEmpty()) {
+                    item { Text("未找到城市：「${uiState.searchQuery}」", color = colors.textSecondary, fontSize = 16.sp, modifier = Modifier.padding(16.dp)) }
+                } else {
+                    item { Text("找到 ${uiState.searchResults.size} 个城市", fontSize = 13.sp, color = colors.textSecondary, modifier = Modifier.padding(bottom = 4.dp)) }
+                    items(uiState.searchResults) { city ->
+                        CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned)
+                    }
+                }
+            } else {
+                val pinned = uiState.pinnedLocations
+                val favorites = uiState.favoriteLocations.filter { !pinned.contains(it) }
+                val recent = uiState.recentLocations.filter { !pinned.contains(it) && !favorites.contains(it) }
+
+                if (pinned.isNotEmpty()) {
+                    item { SectionHeader("📌 置顶城市", colors) }
+                    items(pinned) { city ->
+                        CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned, showPinButton = false)
+                    }
+                }
+                if (favorites.isNotEmpty()) {
+                    item { SectionHeader("⭐ 收藏城市", colors) }
+                    items(favorites) { city ->
+                        CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned)
+                    }
+                }
+                if (recent.isNotEmpty()) {
+                    item { SectionHeader("🕐 最近访问", colors) }
+                    items(recent.take(5)) { city ->
+                        CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned, showFavoriteButton = false)
+                    }
+                }
+                item { Spacer(Modifier.height(8.dp)); SectionHeader("🌍 所有城市（A-Z 快速导航）", colors) }
+                uiState.pinyinInitials.forEach { initial ->
+                    val citiesForLetter = uiState.locationsByPinyin[initial] ?: emptyList()
+                    if (citiesForLetter.isNotEmpty()) {
+                        item { Text("  $initial", fontSize = 13.sp, color = colors.accentColor, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
+                        items(citiesForLetter) { city ->
+                            CityListItem(city, uiState, colors, onCitySelected, onToggleFavorite, onTogglePin, onIsFavorite, onIsPinned)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(text: String, colors: ThemeColors) {
+    Text(text, fontSize = 15.sp, color = colors.accentColor, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+}
+
+@Composable
+private fun SearchBar(query: String, colors: ThemeColors, onQueryChange: (String) -> Unit, onFocusChange: (Boolean) -> Unit) {
+    Surface(color = colors.cardHighlight, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                Text("🔍", fontSize = 20.sp)
+            }
+            Spacer(Modifier.width(10.dp))
+            Box(Modifier.weight(1f)) {
+                BasicTextField(
+                    value = query, onValueChange = onQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(color = colors.textPrimary, fontSize = 17.sp),
+                    singleLine = true,
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (query.isEmpty()) Text("搜索城市（中文/拼音/首字母）...", color = colors.textSecondary.copy(alpha = 0.7f), fontSize = 17.sp)
+                            innerTextField()
+                        }
+                    },
+                )
+            }
+            if (query.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.size(24.dp).clickable { onQueryChange("") },
+                    color = colors.textSecondary.copy(alpha = 0.3f), shape = CircleShape
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text("✕", fontSize = 12.sp, color = colors.textPrimary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CityListItem(
+    city: WeatherLocation, uiState: MainUiState, colors: ThemeColors,
+    onCitySelected: (WeatherLocation) -> Unit,
+    onToggleFavorite: (WeatherLocation) -> Unit, onTogglePin: (WeatherLocation) -> Unit,
+    onIsFavorite: (WeatherLocation) -> Boolean, onIsPinned: (WeatherLocation) -> Boolean,
+    showFavoriteButton: Boolean = true, showPinButton: Boolean = true,
+) {
+    val isSelected = uiState.availableLocations.getOrNull(uiState.selectedLocationIndex)?.name == city.name
+    Surface(
+        color = if (isSelected) colors.accentColor.copy(alpha = 0.2f) else colors.cardHighlight,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().clickable { onCitySelected(city) }
+    ) {
+        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("🌍", fontSize = 18.sp)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(city.name, fontSize = 17.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                Text("${city.country} · ${city.pinyinInitial}", fontSize = 12.sp, color = colors.textSecondary)
+            }
+            if (showPinButton) {
+                Text(if (onIsPinned(city)) "📌" else "📍", fontSize = 16.sp, modifier = Modifier.clickable { onTogglePin(city) })
+                Spacer(Modifier.width(6.dp))
+            }
+            if (showFavoriteButton) {
+                Text(if (onIsFavorite(city)) "⭐" else "☆", fontSize = 16.sp, modifier = Modifier.clickable { onToggleFavorite(city) })
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(city.pinyinInitial, fontSize = 14.sp, color = colors.accentColor, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// ============================================================
+// 布局编辑器（简化为只有3种视觉样式）
+// ============================================================
+@Composable
+private fun LayoutEditorScreen(
+    uiState: MainUiState, colors: ThemeColors,
+    onClose: () -> Unit,
+    onSetVisualStyle: (VisualStyle) -> Unit,
+) {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(28.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("📐 布局编辑器", fontSize = 28.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+            Surface(
+                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClose),
+                color = colors.cardHighlight
+            ) {
+                Text("✕ 关闭", fontSize = 14.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text("选择视觉布局样式，内容自动适配屏幕", fontSize = 14.sp, color = colors.textSecondary)
+        Spacer(Modifier.height(20.dp))
+
+        // 视觉布局样式选择
+        Text("🎨 视觉布局（三种）", fontSize = 16.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(12.dp))
+
+        // 三列或自适应展示
+        val isCompact = screenWidth < 500.dp
+        if (isCompact) {
+            // 窄屏：垂直堆叠
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                VisualStyle.entries.forEach { style ->
+                    VisualStyleCard(style = style, isSelected = uiState.layoutConfig.visualStyle == style, colors = colors, onSelect = {
+                        onSetVisualStyle(style)
+                        onClose()
+                    })
+                }
+            }
+        } else {
+            // 宽屏：水平三列
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                VisualStyle.entries.forEach { style ->
+                    VisualStyleCard(
+                        style = style,
+                        isSelected = uiState.layoutConfig.visualStyle == style,
+                        colors = colors,
+                        onSelect = {
+                            onSetVisualStyle(style)
+                            onClose()
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        // 当前样式预览说明
+        val currentStyle = uiState.layoutConfig.visualStyle
+        Surface(
+            color = colors.cardHighlight,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("📋 当前布局", fontSize = 16.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(8.dp))
+                Text(currentStyle.displayName, fontSize = 20.sp, color = colors.accentColor, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(4.dp))
+                Text(currentStyle.description, fontSize = 14.sp, color = colors.textSecondary)
+                Spacer(Modifier.height(12.dp))
+                val preview = when (currentStyle) {
+                    VisualStyle.TODAY_DETAIL -> "今日大卡片 ${if (isCompact) "↑" else "→"} 七日预报（明天起）"
+                    VisualStyle.WEEK_OVERVIEW -> "当前天气中等 ${if (isCompact) "↑" else "→"} 七日预报（含今天）"
+                    VisualStyle.MINIMAL_CLOCK -> "时钟超大 ${if (isCompact) "↑" else "→"} 天气信息少"
+                }
+                Text("布局结构：$preview", fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.8f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VisualStyleCard(
+    style: VisualStyle,
+    isSelected: Boolean,
+    colors: ThemeColors,
+    onSelect: (VisualStyle) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clickable { onSelect(style) },
+        color = if (isSelected) colors.accentColor.copy(alpha = 0.2f) else colors.cardHighlight,
+        shape = RoundedCornerShape(16.dp),
+        border = if (isSelected) BorderStroke(2.dp, colors.accentColor) else null,
+    ) {
+        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            // 简单图示
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        when (style) {
+                            VisualStyle.TODAY_DETAIL -> Brush.verticalGradient(listOf(colors.accentColor.copy(alpha = 0.5f), colors.accentColor.copy(alpha = 0.2f)))
+                            VisualStyle.WEEK_OVERVIEW -> Brush.verticalGradient(listOf(colors.textSecondary.copy(alpha = 0.4f), colors.textPrimary.copy(alpha = 0.2f)))
+                            VisualStyle.MINIMAL_CLOCK -> Brush.verticalGradient(listOf(colors.textPrimary.copy(alpha = 0.2f), colors.textSecondary.copy(alpha = 0.4f)))
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    when (style) {
+                        VisualStyle.TODAY_DETAIL -> "今日详情"
+                        VisualStyle.WEEK_OVERVIEW -> "七日总览"
+                        VisualStyle.MINIMAL_CLOCK -> "极简时钟"
+                    },
+                    fontSize = 14.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                style.displayName,
+                fontSize = 15.sp,
+                color = if (isSelected) colors.accentColor else colors.textPrimary,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                style.description,
+                fontSize = 11.sp,
+                color = colors.textSecondary,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+// ============================================================
+// 共用组件
+// ============================================================
+@Composable private fun LocationButton(isLocating: Boolean, useMyLocation: Boolean, onClick: () -> Unit, colors: ThemeColors) {
+    val bgColor by animateColorAsState(targetValue = if (useMyLocation) colors.accentColor.copy(alpha = 0.3f) else colors.cardHighlight, label = "locBtnBg")
+    Surface(
+        modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick),
+        color = bgColor,
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isLocating) CircularProgressIndicator(Modifier.size(18.dp), color = colors.accentColor, strokeWidth = 2.dp)
+            else Text(if (useMyLocation) "📍" else "🎯", fontSize = 16.sp)
+            Spacer(Modifier.width(6.dp))
+            Text(
+                if (isLocating) "定位中..." else if (useMyLocation) "我的位置" else "使用位置",
+                fontSize = 13.sp,
+                color = if (useMyLocation) colors.accentColor else colors.textPrimary,
+                fontWeight = if (useMyLocation) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    }
+}
+
+@Composable private fun ThemeButton(colors: ThemeColors, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick),
+        color = colors.cardHighlight,
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("🎨", fontSize = 16.sp)
+            Spacer(Modifier.width(6.dp))
+            Text(colors.name, fontSize = 13.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+@Composable private fun WeatherDetailItem(emoji: String, label: String, value: String, colors: ThemeColors) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(emoji, fontSize = 26.sp)
+        Spacer(Modifier.height(4.dp))
+        Text(label, fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.8f))
+        Spacer(Modifier.height(2.dp))
+        Text(value, fontSize = 18.sp, color = colors.textPrimary, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable private fun ForecastCard(item: DayForecastItem, isToday: Boolean, colors: ThemeColors, modifier: Modifier = Modifier) {
+    val cardBg = if (isToday) colors.accentColor.copy(alpha = 0.18f) else colors.cardHighlight
+    Card(
+        modifier = modifier.height(120.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Text(
+                item.dayLabel,
+                fontSize = if (isToday) 13.sp else 11.sp,
+                color = if (isToday) colors.accentColor else colors.textSecondary,
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium
+            )
+            Text(item.icon, fontSize = 24.sp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(item.tempMax, fontSize = 15.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                Text(item.tempMin, fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.65f))
+            }
+            // 固定高度占位，确保有/无降水概率时高度一致
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.height(16.dp)
+            ) {
+                if (item.precipProb.isNotEmpty()) {
+                    Text("💧", fontSize = 10.sp)
+                    Text(item.precipProb, fontSize = 10.sp, color = Color(0xFF64B5F6))
+                }
+            }
+        }
     }
 }
 
@@ -801,318 +1036,452 @@ private fun levelColor(v: Double, vararg thresholds: Double): Pair<String, Long>
     return level
 }
 
-@Composable private fun ThemeButton(colors: ThemeColors, onClick: () -> Unit) {
-    Surface(modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick), color = colors.cardHighlight, shape = RoundedCornerShape(14.dp)) {
-        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("🎨", fontSize = 16.sp)
+// ============================================================
+// 布局 A：今日详情（当天大卡片 + 七日预报从明天开始）
+// ============================================================
+@Composable
+private fun TodayDetailContent(
+    uiState: MainUiState, colors: ThemeColors,
+    clockSize: TextUnit, dateSize: TextUnit,
+    temperatureSize: TextUnit, weatherIconSize: TextUnit,
+    locationSize: TextUnit, spacing: Dp,
+    screenWidth: Dp,
+    showAirQualitySheet: Boolean,
+    onAirQualityClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // 七日预报列数（不含今天，所以少一列）
+    val forecastCols = when {
+        screenWidth < 400.dp -> 3
+        screenWidth < 600.dp -> 4
+        else -> 6
+    }
+
+    Column(modifier = modifier) {
+        // ── 顶部：位置 ──
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("📍", fontSize = locationSize)
             Spacer(Modifier.width(6.dp))
-            Text(colors.name, fontSize = 13.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-        }
-    }
-}
-
-@Composable private fun WeatherDetailItem(emoji: String, label: String, value: String, colors: ThemeColors) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(emoji, fontSize = 26.sp)
-        Spacer(Modifier.height(4.dp))
-        Text(label, fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.8f))
-        Spacer(Modifier.height(2.dp))
-        Text(value, fontSize = 18.sp, color = colors.textPrimary, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-// ============================================================
-// 右面板
-// ============================================================
-@Composable
-private fun RightPanel(
-    modifier: Modifier, uiState: MainUiState, colors: ThemeColors,
-    onCitySelect: (Int) -> Unit, onLocationRequest: () -> Unit,
-    onSearchOpen: () -> Unit, onPinyinNavClick: (String) -> Unit, onLayoutEditorClick: () -> Unit,
-) {
-    Column(modifier = modifier.fillMaxHeight()) {
-        // 工具栏
-        val rightZoneWidgets = uiState.layoutConfig.zones.find { it.id == "right" }?.widgets?.sortedBy { it.order } ?: emptyList()
-        val forecastVisible = rightZoneWidgets.find { it.type == "FORECAST_7D" }?.visible ?: true
-        val locationBtnVisible = rightZoneWidgets.find { it.type == "LOCATION" }?.visible ?: true
-
-        // Adaptive screen sizing
-        val configuration = LocalConfiguration.current
-        val screenWidth = configuration.screenWidthDp.dp
-
-        // Adaptive forecast card width
-        val cardWidth = when {
-            screenWidth < 400.dp -> 64.dp
-            screenWidth < 600.dp -> 72.dp
-            else -> 80.dp
-        }
-
-        // Adaptive font sizes
-        val toolbarFontSize = if (screenWidth < 400.dp) 12.sp else 14.sp
-
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (locationBtnVisible) {
-                LocationButton(isLocating = uiState.isLocating, useMyLocation = uiState.useMyLocationEnabled, onClick = onLocationRequest, colors = colors)
-                Spacer(Modifier.width(10.dp))
-            }
-            Surface(modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onSearchOpen), color = colors.cardHighlight, shape = RoundedCornerShape(16.dp)) {
-                Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("🔍", fontSize = 18.sp); Spacer(Modifier.width(8.dp)); Text("搜索城市", fontSize = toolbarFontSize, color = colors.textPrimary)
-                }
-            }
-            Spacer(Modifier.width(10.dp))
-            Surface(modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onLayoutEditorClick), color = colors.cardHighlight, shape = RoundedCornerShape(16.dp)) {
-                Text("📐 布局", fontSize = toolbarFontSize, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
-            }
-            Spacer(Modifier.weight(1f))
-            Text("🌍 ${uiState.locationName}", fontSize = 13.sp, color = colors.textSecondary)
-        }
-
-        if (uiState.error != null && uiState.locationDenied) {
-            Spacer(Modifier.height(10.dp))
-            Surface(color = Color.Red.copy(alpha = 0.2f), shape = RoundedCornerShape(12.dp)) {
-                Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("⚠️", fontSize = 18.sp); Spacer(Modifier.width(8.dp))
-                    Column {
-                        Text("定位权限被拒绝", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Medium)
-                        Text("请在系统设置中开启定位权限", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
-                    }
-                }
-            }
-        }
-
-        if (forecastVisible) {
-            Spacer(Modifier.height(10.dp))
-            Row(modifier = Modifier.padding(bottom = 12.dp)) {
-                Text("📅", fontSize = 16.sp); Spacer(Modifier.width(6.dp))
-                Text("七日天气预报", fontSize = 16.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
-            }
-
-            // 七天预报：自动换行布局，不再横向滚动
-            val forecastItems = uiState.forecast
-            val rows = forecastItems.chunked(4) // 每行最多4个
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                rows.forEach { rowItems ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        rowItems.forEach { forecast ->
-                            ForecastCard(
-                                item = forecast,
-                                isToday = forecast == forecastItems.first(),
-                                colors = colors,
-                                modifier = Modifier.width(cardWidth)
-                            )
-                        }
-                        // 填充空白让最后一行对齐
-                        repeat(4 - rowItems.size) {
-                            Spacer(Modifier.width(cardWidth))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ============================================================
-// 布局编辑器（支持拖拽排序）
-// ============================================================
-@Composable
-private fun LayoutEditorScreen(
-    uiState: MainUiState, colors: ThemeColors, onClose: () -> Unit,
-    onMoveWidget: (String, Int, Int) -> Unit, onToggleWidgetVisibility: (String, String) -> Unit,
-    onSetEditingZone: (String) -> Unit, onApplyTemplate: (String) -> Unit,
-) {
-    var draggingFrom by remember { mutableStateOf<Int?>(null) }
-    var draggingZone by remember { mutableStateOf("") }
-    var dragOverIndex by remember { mutableStateOf<Int?>(null) }
-
-    Column(modifier = Modifier.fillMaxSize().padding(28.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("📐 布局编辑器", fontSize = 28.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
-            Surface(modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClose), color = colors.cardHighlight) {
-                Text("✕ 关闭", fontSize = 14.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-            }
-        }
-        Spacer(Modifier.height(6.dp))
-        Text("长按区块后拖动调整顺序，点击 👁 切换显示/隐藏", fontSize = 14.sp, color = colors.textSecondary)
-        Spacer(Modifier.height(16.dp))
-
-        Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            // 左侧：区域选择 + 区块列表
-            Column(modifier = Modifier.weight(1f)) {
-                // 区域选择标签
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    listOf("left" to "左侧区域", "right" to "右侧区域").forEach { (id, label) ->
-                        val isSelected = uiState.editingZone == id
-                        Surface(
-                            modifier = Modifier.clickable { onSetEditingZone(id) },
-                            color = if (isSelected) colors.accentColor else colors.cardHighlight,
-                            shape = RoundedCornerShape(12.dp),
-                            border = if (isSelected) BorderStroke(2.dp, colors.accentColor) else null
-                        ) {
-                            Text(
-                                label,
-                                fontSize = 14.sp,
-                                color = if (isSelected) Color.White else colors.textPrimary,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-
-                // 区块拖拽列表
-                val zoneWidgets = uiState.layoutConfig.zones.find { it.id == uiState.editingZone }?.widgets ?: emptyList()
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    itemsIndexed(zoneWidgets) { index, widget ->
-                        val isDragging = draggingFrom == index && draggingZone == uiState.editingZone
-                        val isDropTarget = dragOverIndex == index
-
-                        Surface(
-                            color = when {
-                                isDragging -> colors.accentColor.copy(alpha = 0.4f)
-                                isDropTarget -> colors.accentColor.copy(alpha = 0.15f)
-                                else -> colors.cardHighlight
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    if (isDragging) { alpha = 0.7f; scaleX = 1.05f; scaleY = 1.05f }
-                                }
-                                .pointerInput(Unit) {
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = {
-                                            draggingFrom = index; draggingZone = uiState.editingZone
-                                        },
-                                        onDragEnd = {
-                                            val from = draggingFrom; val to = dragOverIndex
-                                            if (from != null && to != null && from != to) {
-                                                onMoveWidget(uiState.editingZone, from, to)
-                                            }
-                                            draggingFrom = null; draggingZone = ""; dragOverIndex = null
-                                        },
-                                        onDragCancel = {
-                                            draggingFrom = null; draggingZone = ""; dragOverIndex = null
-                                        },
-                                        onDrag = { change, _ ->
-                                            change.consume()
-                                            dragOverIndex = index
-                                        }
-                                    )
-                                }
-                        ) {
-                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text("☰", fontSize = 18.sp, color = colors.textSecondary)
-                                Spacer(Modifier.width(12.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text(widget.type, fontSize = 15.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-                                    Text(WidgetType.entries.find { it.name == widget.type }?.description ?: "", fontSize = 12.sp, color = colors.textSecondary)
-                                }
-                                Surface(
-                                    color = if (widget.visible) colors.accentColor.copy(alpha = 0.3f) else colors.cardHighlight,
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text(if (widget.visible) "👁 显示" else "🚫 隐藏", fontSize = 12.sp, color = colors.textPrimary,
-                                        modifier = Modifier.clickable { onToggleWidgetVisibility(uiState.editingZone, widget.type) }
-                                            .padding(horizontal = 10.dp, vertical = 6.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 右侧：快速模板（竖向排列展示）
-            Column(modifier = Modifier.weight(0.8f)) {
-                Text("📋 快速模板", fontSize = 16.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(12.dp))
-
-                val templates = listOf(
-                    "默认" to "均衡展示所有信息",
-                    "极简" to "仅保留核心数据",
-                    "信息全开" to "最大化信息显示"
-                )
-                templates.forEach { (name, desc) ->
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onApplyTemplate(name) },
-                        color = colors.cardHighlight, shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(name, fontSize = 15.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-                                Text(desc, fontSize = 12.sp, color = colors.textSecondary)
-                            }
-                            Text("→", fontSize = 18.sp, color = colors.accentColor)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ============================================================
-// 共用组件
-// ============================================================
-@Composable private fun LocationButton(isLocating: Boolean, useMyLocation: Boolean, onClick: () -> Unit, colors: ThemeColors) {
-    val bgColor by animateColorAsState(targetValue = if (useMyLocation) colors.accentColor.copy(alpha = 0.3f) else colors.cardHighlight, label = "locBtnBg")
-    Surface(modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick), color = bgColor, shape = RoundedCornerShape(16.dp)) {
-        Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (isLocating) CircularProgressIndicator(Modifier.size(18.dp), color = colors.accentColor, strokeWidth = 2.dp)
-            else Text(if (useMyLocation) "📍" else "🎯", fontSize = 18.sp)
-            Spacer(Modifier.width(8.dp))
-            Text(if (isLocating) "定位中..." else if (useMyLocation) "我的位置" else "使用位置",
-                fontSize = 14.sp, color = if (useMyLocation) colors.accentColor else colors.textPrimary,
-                fontWeight = if (useMyLocation) FontWeight.Bold else FontWeight.Normal)
-        }
-    }
-}
-
-@Composable private fun ForecastCard(item: DayForecastItem, isToday: Boolean, colors: ThemeColors, modifier: Modifier = Modifier) {
-    val cardBg = if (isToday) colors.accentColor.copy(alpha = 0.18f) else colors.cardHighlight
-    Card(
-        modifier = modifier.width(80.dp).heightIn(min = 110.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
             Text(
-                item.dayLabel,
-                fontSize = if (isToday) 13.sp else 11.sp,
-                color = if (isToday) colors.accentColor else colors.textSecondary,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium
+                uiState.locationName,
+                fontSize = locationSize,
+                color = colors.textPrimary,
+                fontWeight = FontWeight.Medium
             )
-            Text(item.icon, fontSize = 24.sp)
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(item.tempMax, fontSize = 16.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
-                Text(item.tempMin, fontSize = 12.sp, color = colors.textSecondary.copy(alpha = 0.65f))
-            }
-            if (item.precipProb.isNotEmpty()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("💧", fontSize = 10.sp)
-                    Text(item.precipProb, fontSize = 10.sp, color = Color(0xFF64B5F6))
+            if (uiState.locationSource.isNotEmpty()) {
+                Spacer(Modifier.width(8.dp))
+                Surface(color = colors.cardHighlight, shape = RoundedCornerShape(8.dp)) {
+                    Text(
+                        uiState.locationSource,
+                        fontSize = 10.sp,
+                        color = colors.textSecondary.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
                 }
-            } else {
-                Spacer(Modifier.height(0.dp))
+            }
+        }
+
+        Spacer(Modifier.height(spacing))
+
+        // ── 左：日期 + 时间 ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Column {
+                if (uiState.currentDate.isNotEmpty()) {
+                    Text(
+                        uiState.currentDate,
+                        fontSize = dateSize,
+                        color = colors.textSecondary,
+                        lineHeight = dateSize * 1.1f
+                    )
+                }
+                Spacer(Modifier.height(spacing / 3))
+                Text(
+                    uiState.currentTime,
+                    fontSize = clockSize,
+                    color = colors.textPrimary,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 4.sp
+                )
+                if (uiState.timezoneDisplay.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        uiState.timezoneDisplay,
+                        fontSize = 12.sp,
+                        color = colors.textSecondary.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(spacing * 1.5f))
+
+        // ── 今日天气大卡片 ──
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = colors.accentColor.copy(alpha = 0.12f),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(vertical = 16.dp, horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(uiState.weatherIcon, fontSize = weatherIconSize)
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = modifier.weight(1f)) {
+                    Text(
+                        uiState.temperature,
+                        fontSize = temperatureSize,
+                        color = colors.textPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        uiState.weatherDescription,
+                        fontSize = (temperatureSize.value * 0.3f).sp,
+                        color = colors.textSecondary
+                    )
+                }
+                // 详情列
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("💧", fontSize = 14.sp)
+                        Spacer(Modifier.width(4.dp))
+                        Text(uiState.humidity, fontSize = 14.sp, color = colors.textSecondary)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("💨", fontSize = 14.sp)
+                        Spacer(Modifier.width(4.dp))
+                        Text(uiState.windSpeed, fontSize = 14.sp, color = colors.textSecondary)
+                    }
+                    if (uiState.airQuality != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { onAirQualityClick() }
+                        ) {
+                            Text("🫁", fontSize = 14.sp)
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                uiState.airQuality!!.value,
+                                fontSize = 14.sp,
+                                color = Color(uiState.airQuality!!.color),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(spacing))
+
+        // ── 七日预报（从明天开始，不含今天）──
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("📅", fontSize = 13.sp)
+            Spacer(Modifier.width(6.dp))
+            Text("七日预报", fontSize = 13.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.width(8.dp))
+            Text("（从明天起）", fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.6f))
+        }
+        Spacer(Modifier.height(8.dp))
+
+        val forecastItems = uiState.forecast.drop(1)
+        val rows = forecastItems.chunked(forecastCols)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            rows.forEach { rowItems ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    rowItems.forEach { forecast ->
+                        ForecastCard(
+                            item = forecast,
+                            isToday = false,
+                            colors = colors,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    repeat(forecastCols - rowItems.size) {
+                        Spacer(Modifier.weight(1f, fill = false))
+                    }
+                }
             }
         }
     }
 }
 
 // ============================================================
-// 动态粒子数据类
+// 布局 B：七日总览（当前天气中等 + 全部7天预报含今天）
 // ============================================================
-data class RainParticle(
+@Composable
+private fun WeekOverviewContent(
+    uiState: MainUiState, colors: ThemeColors,
+    clockSize: TextUnit, dateSize: TextUnit,
+    temperatureSize: TextUnit, weatherIconSize: TextUnit,
+    locationSize: TextUnit, spacing: Dp,
+    screenWidth: Dp,
+    showAirQualitySheet: Boolean,
+    onAirQualityClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isCompact = screenWidth < 400.dp
+    val forecastCols = when {
+        screenWidth < 400.dp -> 4
+        screenWidth < 600.dp -> 5
+        else -> 7
+    }
+
+    Column(modifier = modifier) {
+        // ── 位置 ──
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("📍", fontSize = locationSize)
+            Spacer(Modifier.width(6.dp))
+            Text(uiState.locationName, fontSize = locationSize, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+        }
+
+        Spacer(Modifier.height(spacing))
+
+        // ── 时间 + 日期 + 天气横向排列 ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                if (uiState.currentDate.isNotEmpty()) {
+                    Text(uiState.currentDate, fontSize = dateSize, color = colors.textSecondary)
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    uiState.currentTime,
+                    fontSize = clockSize,
+                    color = colors.textPrimary,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 3.sp
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(uiState.weatherIcon, fontSize = weatherIconSize)
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        uiState.temperature,
+                        fontSize = temperatureSize,
+                        color = colors.textPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        uiState.weatherDescription,
+                        fontSize = (temperatureSize.value * 0.28f).sp,
+                        color = colors.textSecondary
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(spacing * 0.8f))
+
+        // ── 详情行 ──
+        Row(horizontalArrangement = Arrangement.spacedBy(if (isCompact) 20.dp else 40.dp)) {
+            WeatherDetailItem(emoji = "💧", label = "湿度", value = uiState.humidity, colors = colors)
+            WeatherDetailItem(emoji = "💨", label = "风速", value = uiState.windSpeed, colors = colors)
+            if (uiState.airQuality != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onAirQualityClick() }) {
+                    Text("🫁", fontSize = 24.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text("空气", fontSize = 12.sp, color = colors.textSecondary.copy(alpha = 0.8f))
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        uiState.airQuality!!.value,
+                        fontSize = 16.sp,
+                        color = Color(uiState.airQuality!!.color),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(spacing))
+
+        // ── 七日预报（含今天，共7天）──
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("📅", fontSize = 13.sp)
+            Spacer(Modifier.width(6.dp))
+            Text("七日预报", fontSize = 13.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.width(8.dp))
+            Text("（含今天）", fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.6f))
+        }
+        Spacer(Modifier.height(8.dp))
+
+        val forecastItems = uiState.forecast
+        val rows = forecastItems.chunked(forecastCols)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            rows.forEach { rowItems ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    rowItems.forEach { forecast ->
+                        ForecastCard(
+                            item = forecast,
+                            isToday = forecast == forecastItems.first(),
+                            colors = colors,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    repeat(forecastCols - rowItems.size) {
+                        Spacer(Modifier.weight(1f, fill = false))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ============================================================
+// 布局 C：极简时钟（时钟超大 + 天气信息少 + 七日预报从明天开始）
+// ============================================================
+@Composable
+private fun MinimalClockContent(
+    uiState: MainUiState, colors: ThemeColors,
+    clockSize: TextUnit, dateSize: TextUnit,
+    temperatureSize: TextUnit, weatherIconSize: TextUnit,
+    locationSize: TextUnit, spacing: Dp,
+    screenWidth: Dp,
+    showAirQualitySheet: Boolean,
+    onAirQualityClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isCompact = screenWidth < 400.dp
+    val forecastCols = when {
+        screenWidth < 400.dp -> 3
+        screenWidth < 600.dp -> 4
+        else -> 6
+    }
+
+    Column(modifier = modifier) {
+        // ── 超大时钟占据上半部分 ──
+        Column {
+            if (uiState.currentDate.isNotEmpty()) {
+                Text(
+                    uiState.currentDate,
+                    fontSize = dateSize,
+                    color = colors.textSecondary,
+                    lineHeight = dateSize * 1.1f
+                )
+            }
+            Spacer(Modifier.height(spacing / 2))
+            Text(
+                uiState.currentTime,
+                fontSize = clockSize,
+                color = colors.textPrimary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 4.sp
+            )
+        }
+
+        Spacer(Modifier.height(spacing * 1.5f))
+
+        // ── 位置 + 时区 ──
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("📍", fontSize = locationSize)
+            Spacer(Modifier.width(6.dp))
+            Text(
+                uiState.locationName,
+                fontSize = locationSize,
+                color = colors.textPrimary,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(Modifier.width(8.dp))
+            if (uiState.timezoneDisplay.isNotEmpty()) {
+                Text(
+                    uiState.timezoneDisplay,
+                    fontSize = (locationSize.value * 0.75f).sp,
+                    color = colors.textSecondary.copy(alpha = 0.6f)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(spacing))
+
+        // ── 紧凑天气行 ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(uiState.weatherIcon, fontSize = weatherIconSize)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                uiState.temperature,
+                fontSize = temperatureSize,
+                color = colors.textPrimary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    uiState.weatherDescription,
+                    fontSize = (temperatureSize.value * 0.35f).sp,
+                    color = colors.textSecondary
+                )
+                Text(
+                    uiState.feelsLike,
+                    fontSize = (temperatureSize.value * 0.28f).sp,
+                    color = colors.textSecondary.copy(alpha = 0.7f)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(spacing * 1.2f))
+
+        // ── 七日预报（从明天开始）──
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("📅", fontSize = 13.sp)
+            Spacer(Modifier.width(6.dp))
+            Text("七日预报", fontSize = 13.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.width(8.dp))
+            Text("（从明天起）", fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.6f))
+        }
+        Spacer(Modifier.height(8.dp))
+
+        val forecastItems = uiState.forecast.drop(1)
+        val rows = forecastItems.chunked(forecastCols)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            rows.forEach { rowItems ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    rowItems.forEach { forecast ->
+                        ForecastCard(
+                            item = forecast,
+                            isToday = false,
+                            colors = colors,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    repeat(forecastCols - rowItems.size) {
+                        Spacer(Modifier.weight(1f, fill = false))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ============================================================
+private data class RainParticle(
     val x: Float, val y: Float, val speed: Float, val size: Float,
     val drift: Float = 0f, val opacity: Float = 1f,
     val isRain: Boolean = false, val isSnow: Boolean = false,
