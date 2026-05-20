@@ -930,11 +930,13 @@ private fun VisualStyleCard(
     }
 }
 
-@Composable private fun WeatherDetailItem(emoji: String, label: String, value: String, colors: ThemeColors) {
+@Composable private fun WeatherDetailItem(emoji: String, label: String?, value: String, colors: ThemeColors) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(emoji, fontSize = 26.sp)
-        Spacer(Modifier.height(4.dp))
-        Text(label, fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.8f))
+        if (label != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(label, fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.8f))
+        }
         Spacer(Modifier.height(2.dp))
         Text(value, fontSize = 18.sp, color = colors.textPrimary, fontWeight = FontWeight.SemiBold)
     }
@@ -1037,7 +1039,10 @@ private fun levelColor(v: Double, vararg thresholds: Double): Pair<String, Long>
 }
 
 // ============================================================
-// 布局 A：今日详情（当天大卡片 + 七日预报从明天开始）
+// 布局 A：今日详情
+// 左侧：位置 + 日期 + 超大时钟
+// 右侧：今日天气卡片 + 详情（湿度/风速/空气质量）
+// 底部：七日预报（明天起，2行x3列网格）
 // ============================================================
 @Composable
 private fun TodayDetailContent(
@@ -1050,127 +1055,63 @@ private fun TodayDetailContent(
     onAirQualityClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 七日预报列数（不含今天，所以少一列）
-    val forecastCols = when {
-        screenWidth < 400.dp -> 3
-        screenWidth < 600.dp -> 4
-        else -> 6
-    }
-
     Column(modifier = modifier) {
-        // ── 顶部：位置 ──
+        // ── 左：位置 ──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📍", fontSize = locationSize)
             Spacer(Modifier.width(6.dp))
-            Text(
-                uiState.locationName,
-                fontSize = locationSize,
-                color = colors.textPrimary,
-                fontWeight = FontWeight.Medium
-            )
+            Text(uiState.locationName, fontSize = locationSize, color = colors.textPrimary, fontWeight = FontWeight.Medium)
             if (uiState.locationSource.isNotEmpty()) {
                 Spacer(Modifier.width(8.dp))
                 Surface(color = colors.cardHighlight, shape = RoundedCornerShape(8.dp)) {
-                    Text(
-                        uiState.locationSource,
-                        fontSize = 10.sp,
-                        color = colors.textSecondary.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    Text(uiState.locationSource, fontSize = 10.sp, color = colors.textSecondary.copy(alpha = 0.8f), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                 }
             }
         }
 
         Spacer(Modifier.height(spacing))
 
-        // ── 左：日期 + 时间 ──
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Column {
+        // ── 左侧：时钟日期  右侧：今日天气 ──
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // 左侧：日期 + 时钟（大号）
+            Column(modifier = Modifier.weight(1f)) {
                 if (uiState.currentDate.isNotEmpty()) {
-                    Text(
-                        uiState.currentDate,
-                        fontSize = dateSize,
-                        color = colors.textSecondary,
-                        lineHeight = dateSize * 1.1f
-                    )
+                    Text(uiState.currentDate, fontSize = dateSize, color = colors.textSecondary, lineHeight = dateSize * 1.1f)
                 }
-                Spacer(Modifier.height(spacing / 3))
-                Text(
-                    uiState.currentTime,
-                    fontSize = clockSize,
-                    color = colors.textPrimary,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 4.sp
-                )
+                Spacer(Modifier.height(spacing / 4))
+                Text(uiState.currentTime, fontSize = clockSize, color = colors.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
                 if (uiState.timezoneDisplay.isNotEmpty()) {
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        uiState.timezoneDisplay,
-                        fontSize = 12.sp,
-                        color = colors.textSecondary.copy(alpha = 0.6f)
-                    )
+                    Text(uiState.timezoneDisplay, fontSize = 12.sp, color = colors.textSecondary.copy(alpha = 0.6f))
                 }
             }
-        }
 
-        Spacer(Modifier.height(spacing * 1.5f))
-
-        // ── 今日天气大卡片 ──
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = colors.accentColor.copy(alpha = 0.12f),
-            shape = RoundedCornerShape(20.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(vertical = 16.dp, horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // 右侧：今日天气大卡片
+            Surface(
+                modifier = Modifier.weight(1f),
+                color = colors.accentColor.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(20.dp)
             ) {
-                Text(uiState.weatherIcon, fontSize = weatherIconSize)
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = modifier.weight(1f)) {
-                    Text(
-                        uiState.temperature,
-                        fontSize = temperatureSize,
-                        color = colors.textPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        uiState.weatherDescription,
-                        fontSize = (temperatureSize.value * 0.3f).sp,
-                        color = colors.textSecondary
-                    )
-                }
-                // 详情列
-                Column(horizontalAlignment = Alignment.End) {
+                Column(modifier = Modifier.padding(vertical = 14.dp, horizontal = 16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("💧", fontSize = 14.sp)
-                        Spacer(Modifier.width(4.dp))
-                        Text(uiState.humidity, fontSize = 14.sp, color = colors.textSecondary)
+                        Text(uiState.weatherIcon, fontSize = weatherIconSize)
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(uiState.temperature, fontSize = temperatureSize, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                            Text(uiState.weatherDescription, fontSize = (temperatureSize.value * 0.28f).sp, color = colors.textSecondary)
+                        }
                     }
-                    Spacer(Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("💨", fontSize = 14.sp)
-                        Spacer(Modifier.width(4.dp))
-                        Text(uiState.windSpeed, fontSize = 14.sp, color = colors.textSecondary)
-                    }
-                    if (uiState.airQuality != null) {
-                        Spacer(Modifier.height(4.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { onAirQualityClick() }
-                        ) {
-                            Text("🫁", fontSize = 14.sp)
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                uiState.airQuality!!.value,
-                                fontSize = 14.sp,
-                                color = Color(uiState.airQuality!!.color),
-                                fontWeight = FontWeight.SemiBold
-                            )
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        WeatherDetailItem(emoji = "💧", label = "湿度", value = uiState.humidity, colors = colors)
+                        WeatherDetailItem(emoji = "💨", label = "风速", value = uiState.windSpeed, colors = colors)
+                        if (uiState.airQuality != null) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onAirQualityClick() }) {
+                                Text("🫁", fontSize = 22.sp)
+                                Spacer(Modifier.height(2.dp))
+                                Text("空气", fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.8f))
+                                Text(uiState.airQuality!!.value, fontSize = 14.sp, color = Color(uiState.airQuality!!.color), fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }
@@ -1179,7 +1120,7 @@ private fun TodayDetailContent(
 
         Spacer(Modifier.height(spacing))
 
-        // ── 七日预报（从明天开始，不含今天）──
+        // ── 七日预报（明天起，2行x3列网格，充分利用宽度）──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📅", fontSize = 13.sp)
             Spacer(Modifier.width(6.dp))
@@ -1190,7 +1131,9 @@ private fun TodayDetailContent(
         Spacer(Modifier.height(8.dp))
 
         val forecastItems = uiState.forecast.drop(1)
-        val rows = forecastItems.chunked(forecastCols)
+        // 宽度足够时用3列（明日/后天/周五...），只占满左半边，留右半边给其他内容或留白
+        val gridCols = 3
+        val rows = forecastItems.take(gridCols * 2).chunked(gridCols)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             rows.forEach { rowItems ->
                 Row(
@@ -1199,15 +1142,10 @@ private fun TodayDetailContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     rowItems.forEach { forecast ->
-                        ForecastCard(
-                            item = forecast,
-                            isToday = false,
-                            colors = colors,
-                            modifier = Modifier.weight(1f)
-                        )
+                        ForecastCard(item = forecast, isToday = false, colors = colors, modifier = Modifier.weight(1f))
                     }
-                    repeat(forecastCols - rowItems.size) {
-                        Spacer(Modifier.weight(1f, fill = false))
+                    repeat(gridCols - rowItems.size) {
+                        Spacer(Modifier.weight(1f))
                     }
                 }
             }
@@ -1216,7 +1154,10 @@ private fun TodayDetailContent(
 }
 
 // ============================================================
-// 布局 B：七日总览（当前天气中等 + 全部7天预报含今天）
+// 布局 B：七日总览
+// 左侧：位置 + 日期 + 时钟 + 天气（横向排列，紧凑）
+// 右侧：完整7天预报网格（含今天，7列，充分利用右半边）
+// 底部：详情行（湿度/风速/空气质量）
 // ============================================================
 @Composable
 private fun WeekOverviewContent(
@@ -1229,15 +1170,8 @@ private fun WeekOverviewContent(
     onAirQualityClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isCompact = screenWidth < 400.dp
-    val forecastCols = when {
-        screenWidth < 400.dp -> 4
-        screenWidth < 600.dp -> 5
-        else -> 7
-    }
-
     Column(modifier = modifier) {
-        // ── 位置 ──
+        // ── 左：位置 ──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📍", fontSize = locationSize)
             Spacer(Modifier.width(6.dp))
@@ -1246,69 +1180,47 @@ private fun WeekOverviewContent(
 
         Spacer(Modifier.height(spacing))
 
-        // ── 时间 + 日期 + 天气横向排列 ──
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
+        // ── 左侧：日期+时钟  中间：天气图标+温度  右侧：七天预报 ──
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // 左：日期 + 时钟
+            Column(modifier = Modifier.weight(1f)) {
                 if (uiState.currentDate.isNotEmpty()) {
                     Text(uiState.currentDate, fontSize = dateSize, color = colors.textSecondary)
                 }
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    uiState.currentTime,
-                    fontSize = clockSize,
-                    color = colors.textPrimary,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 3.sp
-                )
+                Text(uiState.currentTime, fontSize = clockSize, color = colors.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
+
+            // 中：天气图标 + 温度（紧凑）
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                 Text(uiState.weatherIcon, fontSize = weatherIconSize)
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
                 Column {
-                    Text(
-                        uiState.temperature,
-                        fontSize = temperatureSize,
-                        color = colors.textPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        uiState.weatherDescription,
-                        fontSize = (temperatureSize.value * 0.28f).sp,
-                        color = colors.textSecondary
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(spacing * 0.8f))
-
-        // ── 详情行 ──
-        Row(horizontalArrangement = Arrangement.spacedBy(if (isCompact) 20.dp else 40.dp)) {
-            WeatherDetailItem(emoji = "💧", label = "湿度", value = uiState.humidity, colors = colors)
-            WeatherDetailItem(emoji = "💨", label = "风速", value = uiState.windSpeed, colors = colors)
-            if (uiState.airQuality != null) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onAirQualityClick() }) {
-                    Text("🫁", fontSize = 24.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("空气", fontSize = 12.sp, color = colors.textSecondary.copy(alpha = 0.8f))
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        uiState.airQuality!!.value,
-                        fontSize = 16.sp,
-                        color = Color(uiState.airQuality!!.color),
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text(uiState.temperature, fontSize = temperatureSize, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                    Text(uiState.weatherDescription, fontSize = (temperatureSize.value * 0.28f).sp, color = colors.textSecondary)
                 }
             }
         }
 
         Spacer(Modifier.height(spacing))
 
-        // ── 七日预报（含今天，共7天）──
+        // ── 详情行（湿度/风速/AQ）──
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            WeatherDetailItem(emoji = "💧", label = "湿度", value = uiState.humidity, colors = colors)
+            WeatherDetailItem(emoji = "💨", label = "风速", value = uiState.windSpeed, colors = colors)
+            if (uiState.airQuality != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onAirQualityClick() }) {
+                    Text("🫁", fontSize = 22.sp)
+                    Spacer(Modifier.height(2.dp))
+                    Text("空气", fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.8f))
+                    Text(uiState.airQuality!!.value, fontSize = 14.sp, color = Color(uiState.airQuality!!.color), fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(spacing))
+
+        // ── 七日预报（含今天，7列，充分利用右半边）──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📅", fontSize = 13.sp)
             Spacer(Modifier.width(6.dp))
@@ -1319,7 +1231,9 @@ private fun WeekOverviewContent(
         Spacer(Modifier.height(8.dp))
 
         val forecastItems = uiState.forecast
-        val rows = forecastItems.chunked(forecastCols)
+        // 7天全显示，只占满右半边宽度，左侧留给其他内容
+        val gridCols = minOf(forecastItems.size, 4)
+        val rows = forecastItems.take(gridCols * 2).chunked(gridCols)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             rows.forEach { rowItems ->
                 Row(
@@ -1328,15 +1242,10 @@ private fun WeekOverviewContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     rowItems.forEach { forecast ->
-                        ForecastCard(
-                            item = forecast,
-                            isToday = forecast == forecastItems.first(),
-                            colors = colors,
-                            modifier = Modifier.weight(1f)
-                        )
+                        ForecastCard(item = forecast, isToday = forecast == forecastItems.first(), colors = colors, modifier = Modifier.weight(1f))
                     }
-                    repeat(forecastCols - rowItems.size) {
-                        Spacer(Modifier.weight(1f, fill = false))
+                    repeat(gridCols - rowItems.size) {
+                        Spacer(Modifier.weight(1f))
                     }
                 }
             }
@@ -1345,7 +1254,10 @@ private fun WeekOverviewContent(
 }
 
 // ============================================================
-// 布局 C：极简时钟（时钟超大 + 天气信息少 + 七日预报从明天开始）
+// 布局 C：极简时钟
+// 左侧：超大时钟占据左侧 2/3（日期+时间，视觉焦点）
+// 右侧：天气信息列（温度+图标+体感+湿度/风速/AQ）
+// 底部：七日预报（明天起，2行x3列）
 // ============================================================
 @Composable
 private fun MinimalClockContent(
@@ -1358,93 +1270,63 @@ private fun MinimalClockContent(
     onAirQualityClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isCompact = screenWidth < 400.dp
-    val forecastCols = when {
-        screenWidth < 400.dp -> 3
-        screenWidth < 600.dp -> 4
-        else -> 6
-    }
-
     Column(modifier = modifier) {
-        // ── 超大时钟占据上半部分 ──
-        Column {
-            if (uiState.currentDate.isNotEmpty()) {
-                Text(
-                    uiState.currentDate,
-                    fontSize = dateSize,
-                    color = colors.textSecondary,
-                    lineHeight = dateSize * 1.1f
-                )
-            }
-            Spacer(Modifier.height(spacing / 2))
-            Text(
-                uiState.currentTime,
-                fontSize = clockSize,
-                color = colors.textPrimary,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 4.sp
-            )
-        }
-
-        Spacer(Modifier.height(spacing * 1.5f))
-
-        // ── 位置 + 时区 ──
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        // ── 左：位置 ──
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📍", fontSize = locationSize)
             Spacer(Modifier.width(6.dp))
-            Text(
-                uiState.locationName,
-                fontSize = locationSize,
-                color = colors.textPrimary,
-                fontWeight = FontWeight.Medium
-            )
+            Text(uiState.locationName, fontSize = locationSize, color = colors.textPrimary, fontWeight = FontWeight.Medium)
             Spacer(Modifier.width(8.dp))
             if (uiState.timezoneDisplay.isNotEmpty()) {
-                Text(
-                    uiState.timezoneDisplay,
-                    fontSize = (locationSize.value * 0.75f).sp,
-                    color = colors.textSecondary.copy(alpha = 0.6f)
-                )
+                Text(uiState.timezoneDisplay, fontSize = (locationSize.value * 0.75f).sp, color = colors.textSecondary.copy(alpha = 0.6f))
             }
         }
 
         Spacer(Modifier.height(spacing))
 
-        // ── 紧凑天气行 ──
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(uiState.weatherIcon, fontSize = weatherIconSize)
-            Spacer(Modifier.width(10.dp))
-            Text(
-                uiState.temperature,
-                fontSize = temperatureSize,
-                color = colors.textPrimary,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(
-                    uiState.weatherDescription,
-                    fontSize = (temperatureSize.value * 0.35f).sp,
-                    color = colors.textSecondary
-                )
-                Text(
-                    uiState.feelsLike,
-                    fontSize = (temperatureSize.value * 0.28f).sp,
-                    color = colors.textSecondary.copy(alpha = 0.7f)
-                )
+        // ── 左侧：超大时钟（占 2/3）  右侧：天气信息 ──
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // 左侧：超大时钟
+            Column(modifier = Modifier.weight(2f)) {
+                if (uiState.currentDate.isNotEmpty()) {
+                    Text(uiState.currentDate, fontSize = dateSize, color = colors.textSecondary, lineHeight = dateSize * 1.1f)
+                }
+                Spacer(Modifier.height(spacing / 4))
+                Text(uiState.currentTime, fontSize = clockSize, color = colors.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+            }
+
+            // 右侧：天气信息（温度+图标+体感+湿度/风速/AQ）
+            Surface(
+                modifier = Modifier.weight(1f),
+                color = colors.cardHighlight,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(vertical = 12.dp, horizontal = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(uiState.weatherIcon, fontSize = weatherIconSize)
+                    Text(uiState.temperature, fontSize = temperatureSize, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                    Text(uiState.weatherDescription, fontSize = (temperatureSize.value * 0.25f).sp, color = colors.textSecondary)
+                    Spacer(Modifier.height(6.dp))
+                    Text(uiState.feelsLike, fontSize = 12.sp, color = colors.textSecondary.copy(alpha = 0.75f))
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        WeatherDetailItem(emoji = "💧", label = null, value = uiState.humidity, colors = colors)
+                        WeatherDetailItem(emoji = "💨", label = null, value = uiState.windSpeed, colors = colors)
+                    }
+                    if (uiState.airQuality != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { onAirQualityClick() }) {
+                            Text("🫁", fontSize = 14.sp)
+                            Spacer(Modifier.width(4.dp))
+                            Text(uiState.airQuality!!.value, fontSize = 14.sp, color = Color(uiState.airQuality!!.color), fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
             }
         }
 
-        Spacer(Modifier.height(spacing * 1.2f))
+        Spacer(Modifier.height(spacing))
 
-        // ── 七日预报（从明天开始）──
+        // ── 七日预报（明天起，2行x3列）──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📅", fontSize = 13.sp)
             Spacer(Modifier.width(6.dp))
@@ -1455,7 +1337,8 @@ private fun MinimalClockContent(
         Spacer(Modifier.height(8.dp))
 
         val forecastItems = uiState.forecast.drop(1)
-        val rows = forecastItems.chunked(forecastCols)
+        val gridCols = 3
+        val rows = forecastItems.take(gridCols * 2).chunked(gridCols)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             rows.forEach { rowItems ->
                 Row(
@@ -1464,15 +1347,10 @@ private fun MinimalClockContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     rowItems.forEach { forecast ->
-                        ForecastCard(
-                            item = forecast,
-                            isToday = false,
-                            colors = colors,
-                            modifier = Modifier.weight(1f)
-                        )
+                        ForecastCard(item = forecast, isToday = false, colors = colors, modifier = Modifier.weight(1f))
                     }
-                    repeat(forecastCols - rowItems.size) {
-                        Spacer(Modifier.weight(1f, fill = false))
+                    repeat(gridCols - rowItems.size) {
+                        Spacer(Modifier.weight(1f))
                     }
                 }
             }
