@@ -66,6 +66,13 @@
 |:---:|:---:|
 | ![Left Panel](docs/screenshots/screenshot_left_panel.png) | ![Right Panel](docs/screenshots/screenshot_right_panel.png) |
 
+### 功能截图
+
+| 日期突出布局 | 七日预报卡片 | 时钟突出布局 | 电子屏主题 | 定位模式 |
+|:---:|:---:|:---:|:---:|:---:|
+| ![日期布局](docs/screenshots/01-date-layout.png) | ![七日预报](docs/screenshots/02-seven-day-forecast.png) | ![时钟布局](docs/screenshots/03-clock-layout.png) | ![电子屏](docs/screenshots/04-elec-theme.png) | ![定位](docs/screenshots/05-location-mode.png) |
+| 日期大字 | 高度统一对齐 | 时钟大字 | 暗色电子风格 | GPS+北京时间 |
+
 ### 部分主题效果
 
 | 晴昼 | 黄昏 | 星空 |
