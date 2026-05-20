@@ -58,14 +58,6 @@
 
 > 完整截图见 [`docs/screenshots/`](docs/screenshots/)
 
-### 主界面预览
-
-![主界面预览](docs/screenshots/screenshot_main.png)
-
-| 左面板（时钟/天气） | 右面板（7日预报） |
-|:---:|:---:|
-| ![Left Panel](docs/screenshots/screenshot_left_panel.png) | ![Right Panel](docs/screenshots/screenshot_right_panel.png) |
-
 ### 功能截图
 
 | 日期突出布局 | 七日预报卡片 | 时钟突出布局 | 电子屏主题 | 定位模式 |
