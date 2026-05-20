@@ -77,17 +77,15 @@ enum class AppTheme(val displayName: String, val description: String) {
     NIGHT("星空", "深邃夜空静谧安宁"),
     FOREST("森林", "翠绿自然清新淡雅"),
     OCEAN("海洋", "蓝白渐变开阔宁静"),
-    // 新增主题
-    INK("水墨", "中国水墨画风格·黑白灰层次"),
-    MINIMAL("简约", "极简留白·信息清晰"),
-    DYNAMIC_WEATHER("动态天气", "天气驱动的沉浸式动态效果"),
+    // 设备专属主题
+    DIGITAL_SCREEN("电子屏", "LED数码管风格·黑底亮绿"),
+    EINK_SCREEN("水墨屏", "电子墨水屏风格·浅灰深字"),
     // 特殊
     NONE("无", "");
 
     companion object {
         fun fromOrdinal(ord: Int): AppTheme = entries.getOrElse(ord) { AUTO }
         fun baseThemeCount() = 6  // 前6个为基础主题
-        fun isNewTheme(t: AppTheme) = t.ordinal >= 6
     }
 }
 
@@ -103,12 +101,32 @@ data class ThemeColors(
     val textSecondary: Color,
     val accentColor: Color,
     val cardHighlight: Color,
-    val isInkStyle: Boolean = false,  // 水墨风格：纯黑白灰
-    val isMinimalStyle: Boolean = false, // 简约风格：大量留白
-    val isDynamicWeather: Boolean = false, // 动态天气主题
+    val isDigitalScreen: Boolean = false,  // 电子屏：黑底亮绿数字
+    val isEinkScreen: Boolean = false,     // 水墨屏：浅灰背景深灰文字
+    val isDynamicWeather: Boolean = false,   // 动态天气主题
 )
 
 // ============================================================
+// ============================================================
+// 视觉比重布局样式（只有3种，无左右分区概念）
+// 布局类型：决定主天气区和七日预报的整体结构
+enum class LayoutType {
+    TODAY_DETAIL,  // 今日详情：当天大卡片 + 七日预报(从明天开始)
+    WEEK_OVERVIEW,  // 七日总览：当前天气中等 + 全部7天预报(含今天)
+    MINIMAL_CLOCK   // 极简时钟：时钟超大 + 天气小 + 七日预报(从明天开始)
+}
+
+// 视觉比重布局样式（只有3种，对应3种结构化布局）
+enum class VisualStyle(
+    val displayName: String,
+    val description: String,
+    val layoutType: LayoutType
+) {
+    TODAY_DETAIL("今日详情", "当天大卡片 · 七日预报从明天开始", LayoutType.TODAY_DETAIL),
+    WEEK_OVERVIEW("七日总览", "当前天气中等 · 完整7天预报", LayoutType.WEEK_OVERVIEW),
+    MINIMAL_CLOCK("极简时钟", "时钟超大 · 天气小信息少", LayoutType.MINIMAL_CLOCK)
+}
+
 // 自定义区块类型
 // ============================================================
 enum class WidgetType(val displayName: String, val description: String) {
@@ -135,6 +153,8 @@ data class WidgetConfig(
 @Serializable
 data class LayoutConfig(
     val version: Int = 1,
+    val visualStyle: VisualStyle = VisualStyle.TODAY_DETAIL,
+    // zones字段保留但忽略，仅用于向后兼容
     val zones: List<WidgetZone> = emptyList()
 )
 

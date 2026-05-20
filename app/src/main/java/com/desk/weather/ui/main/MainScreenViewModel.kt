@@ -1,6 +1,7 @@
 package com.desk.weather.ui.main
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.desk.weather.data.*
@@ -15,6 +16,8 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Collections
 import kotlin.math.pow
+
+private const val TAG = "MainScreenViewModel"
 
 data class DayForecastItem(
     val dayLabel: String,
@@ -71,7 +74,6 @@ data class MainUiState(
     // Layout editor
     val layoutConfig: LayoutConfig = LayoutConfig(),
     val showLayoutEditor: Boolean = false,
-    val editingZone: String = "left",  // 当前编辑的区域
 )
 
 class MainScreenViewModel(application: Application) : AndroidViewModel(application) {
@@ -437,46 +439,23 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         saveLayoutConfig(newConfig)
     }
 
-    fun setEditingZone(zone: String) {
-        _uiState.value = _uiState.value.copy(editingZone = zone)
-    }
-
     // 应用布局模板
     fun applyTemplate(templateName: String) {
-        val ctx = getApplication<Application>()
-        val config = when (templateName) {
-            "默认" -> LayoutConfig(zones = listOf(
-                WidgetZone("left", listOf(
-                    WidgetConfig("CLOCK", true, 0), WidgetConfig("DATE", true, 1),
-                    WidgetConfig("LOCATION", true, 2), WidgetConfig("TEMPERATURE", true, 3), WidgetConfig("DETAILS", true, 4)
-                )),
-                WidgetZone("right", listOf(
-                    WidgetConfig("FORECAST_7D", true, 0), WidgetConfig("AIR_QUALITY", true, 1),
-                    WidgetConfig("SUN_SUNRISE", true, 2), WidgetConfig("THEME_SWITCH", true, 3)
-                ))
-            ))
-            "极简" -> LayoutConfig(zones = listOf(
-                WidgetZone("left", listOf(
-                    WidgetConfig("CLOCK", true, 0), WidgetConfig("DATE", true, 1), WidgetConfig("TEMPERATURE", true, 2)
-                )),
-                WidgetZone("right", listOf(
-                    WidgetConfig("FORECAST_7D", true, 0)
-                ))
-            ))
-            "信息全开" -> LayoutConfig(zones = listOf(
-                WidgetZone("left", listOf(
-                    WidgetConfig("CLOCK", true, 0), WidgetConfig("DATE", true, 1),
-                    WidgetConfig("LOCATION", true, 2), WidgetConfig("TEMPERATURE", true, 3), WidgetConfig("DETAILS", true, 4)
-                )),
-                WidgetZone("right", listOf(
-                    WidgetConfig("FORECAST_7D", true, 0), WidgetConfig("AIR_QUALITY", true, 1),
-                    WidgetConfig("SUN_SUNRISE", true, 2), WidgetConfig("THEME_SWITCH", true, 3), WidgetConfig("SPACING", true, 4)
-                ))
-            ))
+        val style = when (templateName) {
+            "今日详情" -> VisualStyle.TODAY_DETAIL
+            "七日总览" -> VisualStyle.WEEK_OVERVIEW
+            "极简时钟" -> VisualStyle.MINIMAL_CLOCK
             else -> return
         }
-        _uiState.value = _uiState.value.copy(layoutConfig = config)
-        saveLayoutConfig(config)
+        setVisualStyle(style)
+    }
+
+    // 切换视觉布局样式
+    fun setVisualStyle(style: VisualStyle) {
+        val current = _uiState.value.layoutConfig
+        val newConfig = current.copy(visualStyle = style)
+        _uiState.value = _uiState.value.copy(layoutConfig = newConfig)
+        saveLayoutConfig(newConfig)
     }
 
     // ── 位置权限 ──
@@ -489,37 +468,66 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         locatingJob = viewModelScope.launch {
             val ctx = getApplication<Application>()
 
-            // Helper to process location result
+            // Helper to process location result — ensures isLocating is always cleared
             fun processLocationResult(lat: Double, lon: Double, source: String) {
+                // Clear locating flag immediately, then do async work
+                _uiState.value = _uiState.value.copy(isLocating = false)
                 onLocationReceived(lat, lon, source)
+            }
+
+            // Hard timeout: if nothing completes in 25s, give up
+            val hardTimeout = viewModelScope.launch {
+                kotlinx.coroutines.delay(25_000L)
+                val current = _uiState.value
+                if (current.isLocating) {
+                    _uiState.value = current.copy(
+                        isLocating = false,
+                        error = "定位超时，请检查GPS或稍后重试"
+                    )
+                }
             }
 
             try {
                 // Step 1: Try current location with 15-second timeout
                 val location = withTimeoutOrNull(15_000L) {
-                    LocationProvider.getCurrentLocation(ctx)
+                    try {
+                        LocationProvider.getCurrentLocation(ctx)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "getCurrentLocation threw", e)
+                        null
+                    }
                 }
 
                 if (location != null) {
+                    hardTimeout.cancel()
                     processLocationResult(location.latitude, location.longitude, location.source)
                     return@launch
                 }
 
                 // Step 2: No GPS fix yet — try last known location
-                val lastLocation = LocationProvider.getLastKnownLocation(ctx)
+                val lastLocation = try {
+                    LocationProvider.getLastKnownLocation(ctx)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getLastKnownLocation threw", e)
+                    null
+                }
                 if (lastLocation != null) {
+                    hardTimeout.cancel()
                     // Use last known but note it's stale
                     processLocationResult(lastLocation.latitude, lastLocation.longitude, lastLocation.source + " (缓存)")
                     return@launch
                 }
 
                 // Step 3: No location available at all
+                hardTimeout.cancel()
                 _uiState.value = _uiState.value.copy(
                     isLocating = false,
                     error = "无法获取位置，请检查定位服务是否开启"
                 )
 
             } catch (e: Exception) {
+                hardTimeout.cancel()
+                Log.e(TAG, "定位流程异常", e)
                 // Step 4: Exception — last resort fallback
                 try {
                     val last = withTimeoutOrNull(3_000L) {

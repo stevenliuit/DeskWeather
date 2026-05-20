@@ -60,10 +60,10 @@
 
 ### 功能截图
 
-| 日期突出布局 | 七日预报卡片 | 时钟突出布局 | 电子屏主题 | 定位模式 |
-|:---:|:---:|:---:|:---:|:---:|
-| ![日期布局](docs/screenshots/01-date-layout.png) | ![七日预报](docs/screenshots/02-seven-day-forecast.png) | ![时钟布局](docs/screenshots/03-clock-layout.png) | ![电子屏](docs/screenshots/04-elec-theme.png) | ![定位](docs/screenshots/05-location-mode.png) |
-| 日期大字 | 高度统一对齐 | 时钟大字 | 暗色电子风格 | GPS+北京时间 |
+| 今日详情布局 | 七日总览布局 | 极简时钟布局 | 电子屏主题 | 定位模式 |
+||:---:|:---:|:---:|:---:|:---:|
+| ![今日详情](docs/screenshots/layout_today_detail.png) | ![七日总览](docs/screenshots/layout_week_overview.png) | ![极简时钟](docs/screenshots/layout_minimal_clock.png) | ![电子屏](docs/screenshots/04-elec-theme.png) | ![定位](docs/screenshots/05-location-mode.png) |
+| 左时钟右预报 | 左紧凑右7天 | 左超大右天气 | 暗色电子风格 | GPS+北京时间 |
 
 ### 部分主题效果
 

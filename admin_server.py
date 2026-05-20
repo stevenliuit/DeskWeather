@@ -34,16 +34,7 @@ DEFAULT_CONFIG = {
         "theme": "auto",
         "auto_refresh_minutes": 10,
     },
-    "layout": {
-        "left": {
-            "CLOCK": True, "DATE": True, "LOCATION": True,
-            "TEMPERATURE": True, "DETAILS": True, "AIR_QUALITY": True
-        },
-        "right": {
-            "FORECAST_7D": True, "AIR_QUALITY": True,
-            "SUN_SUNRISE": True, "THEME_SWITCH": True, "LOCATION": True
-        }
-    },
+    "visual_style": "BALANCED",  # DATE_FOCUSED | CLOCK_FOCUSED | BALANCED
     "cities": {
         "pinned": [], "favorites": [], "recent": []
     }
@@ -99,7 +90,7 @@ def sync_to_phone():
         subprocess.run([
             "adb", "shell", "am", "broadcast", "-a",
             "com.example.weatherclock.CONFIG_UPDATE",
-            "-p", "com.example.weatherclock"
+            "-p", "com.desk.weather"
         ], check=False, capture_output=True, timeout=10)
 
         return True, "配置已同步到手机"
@@ -193,6 +184,8 @@ input::-webkit-inner-spin-button { -webkit-appearance: none; }
 .msg.success { background: rgba(35,134,54,0.2); border: 1px solid #238636; color: #3fb950; }
 .msg.error { background: rgba(248,81,73,0.2); border: 1px solid #f85149; color: #f85149; }
 .last-sync { font-size: 12px; color: #8b949e; margin-top: 8px; }
+.visual-style-item { padding: 12px; background: #0d1117; border-radius: 10px; border: 1px solid #30363d; cursor: pointer; transition: border 0.2s; }
+.visual-style-item:hover { border-color: #388bfd; }
 </style>
 </head>
 <body>
@@ -219,12 +212,21 @@ input::-webkit-inner-spin-button { -webkit-appearance: none; }
           <option value="auto">自动（跟随系统）</option>
           <option value="day">晴昼</option>
           <option value="dusk">黄昏</option>
-          <option value="ink">水墨</option>
+          <option value="night">星空</option>
           <option value="forest">森林</option>
-          <option value="night">深夜</option>
-          <option value="minimal">简约</option>
           <option value="ocean">海洋</option>
+          <option value="digital_screen">电子屏</option>
+          <option value="eink_screen">水墨屏</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label>视觉布局</label>
+        <select id="visualStyle">
+          <option value="BALANCED">均衡布局</option>
+          <option value="DATE_FOCUSED">日期突出</option>
+          <option value="CLOCK_FOCUSED">时钟突出</option>
+        </select>
+      </div>
       </div>
       <div class="form-group">
         <label>自动刷新间隔（分钟）</label>
@@ -233,16 +235,44 @@ input::-webkit-inner-spin-button { -webkit-appearance: none; }
     </div>
   </div>
 
-  <!-- 左侧布局 -->
+  <!-- 视觉布局说明 -->
   <div class="card">
-    <h2>📐 左侧区域组件</h2>
-    <div class="grid" id="leftWidgets"></div>
-  </div>
-
-  <!-- 右侧布局 -->
-  <div class="card">
-    <h2>📐 右侧区域组件</h2>
-    <div class="grid" id="rightWidgets"></div>
+    <h2>📐 视觉布局</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      <div class="visual-style-item" id="vs_balanced" onclick="setVisualStyle('BALANCED')">
+        <div style="text-align:center;">
+          <div style="background:#1a2a3a;border-radius:8px;padding:12px;margin-bottom:8px;">
+            <div style="height:16px;background:#4fc3f7;border-radius:4px;margin-bottom:4px;"></div>
+            <div style="height:10px;background:#90caf9;border-radius:4px;"></div>
+          </div>
+          <strong>均衡布局</strong><br>
+          <small style="color:#8b949e">时间=日期=天气</small>
+        </div>
+      </div>
+      <div class="visual-style-item" id="vs_date" onclick="setVisualStyle('DATE_FOCUSED')">
+        <div style="text-align:center;">
+          <div style="background:#1a2a3a;border-radius:8px;padding:12px;margin-bottom:8px;">
+            <div style="height:20px;background:#4fc3f7;border-radius:4px;margin-bottom:4px;"></div>
+            <div style="height:8px;background:#90caf9;border-radius:4px;"></div>
+          </div>
+          <strong>日期突出</strong><br>
+          <small style="color:#8b949e">日期大、时间中</small>
+        </div>
+      </div>
+      <div class="visual-style-item" id="vs_clock" onclick="setVisualStyle('CLOCK_FOCUSED')">
+        <div style="text-align:center;">
+          <div style="background:#1a2a3a;border-radius:8px;padding:12px;margin-bottom:8px;">
+            <div style="height:24px;background:#4fc3f7;border-radius:4px;margin-bottom:4px;"></div>
+            <div style="height:6px;background:#90caf9;border-radius:4px;"></div>
+          </div>
+          <strong>时钟突出</strong><br>
+          <small style="color:#8b949e">时钟大、日期小</small>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#0d1117;border-radius:8px;border:1px solid #30363d;">
+      <span style="color:#8b949e;font-size:13px;">💡 提示：布局自适应屏幕，内容不再分左右区域</span>
+    </div>
   </div>
 
   <!-- 城市管理 -->
@@ -302,47 +332,30 @@ async function load() {
   document.getElementById('theme').value = cfg.app?.theme || 'auto';
   document.getElementById('autoRefresh').value = cfg.app?.auto_refresh_minutes || 10;
 
-  // 渲染 toggle
-  const leftWidgets = cfg.layout?.left || {};
-  const rightWidgets = cfg.layout?.right || {};
-  renderWidgets('leftWidgets', leftWidgets);
-  renderWidgets('rightWidgets', rightWidgets);
+  // 渲染视觉样式选中状态
+  function renderVisualStyles() {
+    const vs = cfg.visual_style || 'BALANCED';
+    document.querySelectorAll('.visual-style-item').forEach(el => el.style.border = '1px solid #30363d');
+    const el = document.getElementById('vs_' + vs.toLowerCase());
+    if (el) el.style.border = '2px solid #388bfd';
+    document.getElementById('visualStyle').value = vs;
+  }
+
+  function setVisualStyle(style) {
+    cfg.visual_style = style;
+    renderVisualStyles();
+  }
 
   // 渲染城市列表
   renderCities('pinnedList', cfg.cities?.pinned || [], 'pinned');
   renderCities('favoritesList', cfg.cities?.favorites || [], 'favorites');
   renderCities('recentList', cfg.cities?.recent || [], 'recent');
+  renderVisualStyles();
 
   const lastSync = cfg._last_sync;
   if (lastSync) {
     document.getElementById('lastSync').textContent = '上次同步：' + lastSync;
   }
-}
-
-function renderWidgets(containerId, widgets) {
-  const container = document.getElementById(containerId);
-  const labels = {
-    CLOCK: '🕐 时钟', DATE: '📅 日期', LOCATION: '📍 位置',
-    TEMPERATURE: '🌡️ 温度', DETAILS: '💧 风速/湿度', AIR_QUALITY: '🫁 空气质量',
-    FORECAST_7D: '📆 七日预报', SUN_SUNRISE: '🌅 日出日落', THEME_SWITCH: '🎨 主题切换'
-  };
-  container.innerHTML = Object.entries(widgets).map(([k, v]) => `
-    <div class="toggle-item">
-      <label>${labels[k] || k}</label>
-      <label class="toggle">
-        <input type="checkbox" ${v ? 'checked' : ''}
-               onchange="setWidget('${containerId}', '${k}', this.checked)">
-        <span class="slider"></span>
-      </label>
-    </div>
-  `).join('');
-}
-
-function setWidget(side, type, val) {
-  const key = side === 'leftWidgets' ? 'left' : 'right';
-  if (!cfg.layout) cfg.layout = {};
-  if (!cfg.layout[key]) cfg.layout[key] = {};
-  cfg.layout[key][type] = val;
 }
 
 function renderCities(listId, cities, type) {
@@ -384,6 +397,7 @@ async function saveAll() {
     theme: document.getElementById('theme').value,
     auto_refresh_minutes: parseInt(document.getElementById('autoRefresh').value) || 10
   };
+  cfg.visual_style = document.getElementById('visualStyle').value;
 
   showMsg('正在同步到手机...', 'info');
   try {

@@ -71,18 +71,33 @@ object ThemeDefinitions {
     )
 
     // ================================================================
-    // 🖋️ 水墨主题 — 中国水墨画风格，纯黑白灰层次
+    // 📱 设备专属主题
     // ================================================================
-    val inkTheme = ThemeColors(
-        name = "水墨",
-        topGradient = Color(0xFF1A1A1A),
-        bottomGradient = Color(0xFF2D2D2D),
-        surfaceColor = Color(0xFF212121),
-        textPrimary = Color(0xFFF5F5F5),
-        textSecondary = Color(0xFFBDBDBD),
-        accentColor = Color(0xFF9E9E9E),
-        cardHighlight = Color(0xFF424242),
-        isInkStyle = true
+
+    // 电子屏主题 — LED/数码管风格，黑底亮字，高对比度
+    val digitalScreenTheme = ThemeColors(
+        name = "电子屏",
+        topGradient = Color(0xFF0D0D0D),
+        bottomGradient = Color(0xFF1A1A1A),
+        surfaceColor = Color(0xFF0A0A0A),
+        textPrimary = Color(0xFF00FF88),        // 亮绿数字
+        textSecondary = Color(0xFF888888),      // 灰白次要文字
+        accentColor = Color(0xFF00FF88),        // 绿色强调
+        cardHighlight = Color(0xFF1A2A1A),
+        isDigitalScreen = true
+    )
+
+    // 水墨屏主题 — 电子墨水屏风格，浅灰背景，深灰文字，无背光感
+    val einkScreenTheme = ThemeColors(
+        name = "水墨屏",
+        topGradient = Color(0xFFE8E8E8),
+        bottomGradient = Color(0xFFF5F5F5),
+        surfaceColor = Color(0xFFFAFAFA),
+        textPrimary = Color(0xFF1A1A1A),        // 深灰/近黑文字
+        textSecondary = Color(0xFF666666),      // 中灰次要
+        accentColor = Color(0xFF333333),        // 深灰强调
+        cardHighlight = Color(0xFFDDDDDD),
+        isEinkScreen = true
     )
 
     // ================================================================
@@ -96,8 +111,7 @@ object ThemeDefinitions {
         textPrimary = Color(0xFF212121),
         textSecondary = Color(0xFF757575),
         accentColor = Color(0xFF212121),
-        cardHighlight = Color(0xFFEEEEEE),
-        isMinimalStyle = true
+        cardHighlight = Color(0xFFEEEEEE)
     )
 
     // ================================================================
@@ -124,9 +138,8 @@ object ThemeDefinitions {
             AppTheme.NIGHT -> nightTheme
             AppTheme.FOREST -> forestTheme
             AppTheme.OCEAN -> oceanTheme
-            AppTheme.INK -> inkTheme
-            AppTheme.MINIMAL -> minimalTheme
-            AppTheme.DYNAMIC_WEATHER -> dynamicWeatherTheme
+            AppTheme.DIGITAL_SCREEN -> digitalScreenTheme
+            AppTheme.EINK_SCREEN -> einkScreenTheme
             AppTheme.NONE -> nightTheme
         }
     }
@@ -138,8 +151,7 @@ object ThemeDefinitions {
         AppTheme.NIGHT to nightTheme,
         AppTheme.FOREST to forestTheme,
         AppTheme.OCEAN to oceanTheme,
-        AppTheme.INK to inkTheme,
-        AppTheme.MINIMAL to minimalTheme,
-        AppTheme.DYNAMIC_WEATHER to dynamicWeatherTheme,
+        AppTheme.DIGITAL_SCREEN to digitalScreenTheme,
+        AppTheme.EINK_SCREEN to einkScreenTheme,
     )
 }

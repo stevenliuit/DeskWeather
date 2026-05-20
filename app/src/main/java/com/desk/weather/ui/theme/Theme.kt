@@ -36,17 +36,17 @@ fun WeatherClockTheme(
             val window = (view.context as Activity).window
             window.statusBarColor = themeColors.topGradient.toArgb()
             window.navigationBarColor = themeColors.bottomGradient.toArgb()
-            // Use a light status bar if the background is light (minimal theme)
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = themeColors.isMinimalStyle
+            // 水墨屏(E-ink)是浅色背景，用深色状态栏
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = themeColors.isEinkScreen
         }
     }
 
-    // Build a dynamic color scheme based on whether this is a light or dark theme
-    // isMinimalStyle = light theme (white/gray bg, dark text)
-    // isInkStyle = dark theme but with monochrome gray palette (no colored accents)
+    // Build a dynamic color scheme based on theme type:
+    // isEinkScreen = light theme (light gray bg, dark text)
+    // isDigitalScreen = dark theme (near-black bg, bright green text)
     val colorScheme = when {
-        themeColors.isMinimalStyle -> {
-            // Light theme for 简约 (minimal) — light backgrounds, dark text
+        themeColors.isEinkScreen -> {
+            // 水墨屏：浅灰背景、深灰文字，lightColorScheme
             lightColorScheme(
                 primary = themeColors.accentColor,
                 onPrimary = Color.White,
@@ -62,12 +62,11 @@ fun WeatherClockTheme(
                 onSurfaceVariant = themeColors.textSecondary,
             )
         }
-        themeColors.isInkStyle -> {
-            // 水墨 Ink style — warm dark monochrome with subtle off-white text
-            // Since isInkStyle is dark but the text is light gray, use darkColorScheme
+        themeColors.isDigitalScreen -> {
+            // 电子屏：深黑背景、亮绿文字，darkColorScheme
             darkColorScheme(
-                primary = themeColors.accentColor,   // gray accent
-                onPrimary = themeColors.textPrimary, // off-white text on dark bg
+                primary = themeColors.accentColor,
+                onPrimary = themeColors.textPrimary,
                 secondary = themeColors.cardHighlight,
                 onSecondary = themeColors.textPrimary,
                 tertiary = themeColors.accentColor,
@@ -81,14 +80,14 @@ fun WeatherClockTheme(
             )
         }
         else -> {
-            // Dark theme for all other themes (DAY, NIGHT, FOREST, OCEAN, DUSK, DYNAMIC_WEATHER)
+            // 默认深色主题
             darkColorScheme(
                 primary = themeColors.accentColor,
-                onPrimary = if (themeColors.isMinimalStyle) Color.White else themeColors.textPrimary,
+                onPrimary = themeColors.textPrimary,
                 secondary = themeColors.cardHighlight,
                 onSecondary = themeColors.textPrimary,
                 tertiary = themeColors.accentColor,
-                onTertiary = if (themeColors.isMinimalStyle) Color.White else themeColors.textPrimary,
+                onTertiary = themeColors.textPrimary,
                 background = themeColors.topGradient,
                 onBackground = themeColors.textPrimary,
                 surface = themeColors.surfaceColor,
