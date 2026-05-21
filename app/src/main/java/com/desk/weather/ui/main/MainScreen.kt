@@ -471,6 +471,7 @@ private fun SingleColumnLayout(
                 screenWidth = screenWidth,
                 showAirQualitySheet = showAirQualitySheet,
                 onAirQualityClick = { showAirQualitySheet = true },
+                isCompact = isCompact,
                 modifier = Modifier.weight(1f)
             )
         } else if (layoutType == LayoutType.WEEK_OVERVIEW) {
@@ -494,6 +495,7 @@ private fun SingleColumnLayout(
                 screenWidth = screenWidth,
                 showAirQualitySheet = showAirQualitySheet,
                 onAirQualityClick = { showAirQualitySheet = true },
+                isCompact = isCompact,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -946,36 +948,42 @@ private fun VisualStyleCard(
 @Composable private fun ForecastCard(item: DayForecastItem, isToday: Boolean, colors: ThemeColors, modifier: Modifier = Modifier) {
     val cardBg = if (isToday) colors.accentColor.copy(alpha = 0.18f) else colors.cardHighlight
     Card(
-        modifier = modifier.height(120.dp),
+        modifier = modifier.wrapContentHeight(),
         colors = CardDefaults.cardColors(containerColor = cardBg),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp, horizontal = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceEvenly
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
                 item.dayLabel,
                 fontSize = if (isToday) 13.sp else 11.sp,
                 color = if (isToday) colors.accentColor else colors.textSecondary,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1
             )
-            Text(item.icon, fontSize = 24.sp)
+            Text(item.icon, fontSize = 24.sp, maxLines = 1)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(item.tempMax, fontSize = 15.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
-                Text(item.tempMin, fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.65f))
+                Text(item.tempMax, fontSize = 15.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(item.tempMin, fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.65f), maxLines = 1)
             }
             // 固定高度占位，确保有/无降水概率时高度一致
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.height(16.dp)
-            ) {
-                if (item.precipProb.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            if (item.precipProb.isNotEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.height(16.dp)
+                ) {
                     Text("💧", fontSize = 10.sp)
                     Text(item.precipProb, fontSize = 10.sp, color = Color(0xFF64B5F6))
                 }
+            } else {
+                Spacer(Modifier.height(16.dp))
             }
         }
     }
@@ -1054,6 +1062,7 @@ private fun TodayDetailContent(
     screenWidth: Dp,
     showAirQualitySheet: Boolean,
     onAirQualityClick: () -> Unit,
+    isCompact: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -1121,7 +1130,7 @@ private fun TodayDetailContent(
 
         Spacer(Modifier.height(spacing))
 
-        // ── 七日预报（明天起，2行x3列网格，充分利用宽度）──
+        // ── 七日预报（明天起，2行x3列网格）──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📅", fontSize = 13.sp)
             Spacer(Modifier.width(6.dp))
@@ -1132,19 +1141,24 @@ private fun TodayDetailContent(
         Spacer(Modifier.height(8.dp))
 
         val forecastItems = uiState.forecast.drop(1)
-        // 宽度足够时用3列（明日/后天/周五...），只占满左半边，留右半边给其他内容或留白
-        val gridCols = 3
-        val rows = forecastItems.take(gridCols * 2).chunked(gridCols)
+        // 动态列数：窄屏2列，中屏3列，宽屏3列（最多6天=2行）
+        val gridCols = if (isCompact) 2 else 3
+        // 不要take(6)，而是显示所有可用天数（最多gridCols*2个）
+        val rows = forecastItems.chunked(gridCols)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            rows.forEach { rowItems ->
+            rows.forEachIndexed { rowIdx, rowItems ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    rowItems.forEach { forecast ->
-                        ForecastCard(item = forecast, isToday = false, colors = colors, modifier = Modifier.weight(1f))
+                    rowItems.forEachIndexed { colIdx, forecast ->
+                        ForecastCard(
+                            item = forecast, isToday = false, colors = colors,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
+                    // 填充空白格子以保持对齐
                     repeat(gridCols - rowItems.size) {
                         Spacer(Modifier.weight(1f))
                     }
@@ -1156,9 +1170,9 @@ private fun TodayDetailContent(
 
 // ============================================================
 // 布局 B：七日总览
-// 左侧：位置 + 日期 + 时钟 + 天气（横向排列，紧凑）
-// 右侧：完整7天预报网格（含今天，7列，充分利用右半边）
-// 底部：详情行（湿度/风速/空气质量）
+// 位置 + 日期 + 时钟 + 天气（横向排列，紧凑）
+// 完整7天预报网格（含今天，7列）
+// 详情行（湿度/风速/空气质量）
 // ============================================================
 @Composable
 private fun WeekOverviewContent(
@@ -1222,7 +1236,7 @@ private fun WeekOverviewContent(
 
         Spacer(Modifier.height(spacing))
 
-        // ── 七日预报（含今天，7列）──
+        // ── 七日预报（含今天，动态列数）──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📅", fontSize = 13.sp)
             Spacer(Modifier.width(6.dp))
@@ -1233,10 +1247,10 @@ private fun WeekOverviewContent(
         Spacer(Modifier.height(8.dp))
 
         val forecastItems = uiState.forecast
-        // 7天全显示，动态计算列数（1-4列自适应）
+        // 动态列数：窄屏2-3列，宽屏3-4列，显示所有7天
         val numDays = forecastItems.size.coerceIn(1, 7)
-        val gridCols = minOf(numDays, if (isCompact) 3 else 4)
-        val rows = forecastItems.take(gridCols * 2).chunked(gridCols)
+        val gridCols = if (isCompact) minOf(numDays, 3) else minOf(numDays, 4)
+        val rows = forecastItems.chunked(gridCols)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             rows.forEach { rowItems ->
                 Row(
@@ -1244,8 +1258,13 @@ private fun WeekOverviewContent(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    rowItems.forEach { forecast ->
-                        ForecastCard(item = forecast, isToday = forecast == forecastItems.first(), colors = colors, modifier = Modifier.weight(1f))
+                    rowItems.forEachIndexed { idx, forecast ->
+                        ForecastCard(
+                            item = forecast,
+                            isToday = forecast == forecastItems.first(),
+                            colors = colors,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                     repeat(gridCols - rowItems.size) {
                         Spacer(Modifier.weight(1f))
@@ -1271,6 +1290,7 @@ private fun MinimalClockContent(
     screenWidth: Dp,
     showAirQualitySheet: Boolean,
     onAirQualityClick: () -> Unit,
+    isCompact: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -1329,7 +1349,7 @@ private fun MinimalClockContent(
 
         Spacer(Modifier.height(spacing))
 
-        // ── 七日预报（明天起，2行x3列）──
+        // ── 七日预报（明天起，动态列数）──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📅", fontSize = 13.sp)
             Spacer(Modifier.width(6.dp))
@@ -1340,8 +1360,9 @@ private fun MinimalClockContent(
         Spacer(Modifier.height(8.dp))
 
         val forecastItems = uiState.forecast.drop(1)
-        val gridCols = 3
-        val rows = forecastItems.take(gridCols * 2).chunked(gridCols)
+        // 动态列数：窄屏2列，中屏3列，宽屏3列（最多6天=2行）
+        val gridCols = if (isCompact) 2 else 3
+        val rows = forecastItems.chunked(gridCols)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             rows.forEach { rowItems ->
                 Row(
