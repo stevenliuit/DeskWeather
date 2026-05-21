@@ -108,7 +108,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
             favoriteLocations = favorites,
             recentLocations = recent,
             pinnedLocations = pinned,
-            layoutConfig = AppSettings.loadLayoutConfig(ctx),
+            layoutConfig = AppSettings.loadLayoutConfigWithAdminOverride(ctx),
         )
 
         // 优先选中置顶城市，否则默认

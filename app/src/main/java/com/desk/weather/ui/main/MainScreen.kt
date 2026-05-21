@@ -482,6 +482,7 @@ private fun SingleColumnLayout(
                 screenWidth = screenWidth,
                 showAirQualitySheet = showAirQualitySheet,
                 onAirQualityClick = { showAirQualitySheet = true },
+                isCompact = isCompact,
                 modifier = Modifier.weight(1f)
             )
         } else {
@@ -1168,6 +1169,7 @@ private fun WeekOverviewContent(
     screenWidth: Dp,
     showAirQualitySheet: Boolean,
     onAirQualityClick: () -> Unit,
+    isCompact: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -1220,7 +1222,7 @@ private fun WeekOverviewContent(
 
         Spacer(Modifier.height(spacing))
 
-        // ── 七日预报（含今天，7列，充分利用右半边）──
+        // ── 七日预报（含今天，7列）──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📅", fontSize = 13.sp)
             Spacer(Modifier.width(6.dp))
@@ -1231,13 +1233,14 @@ private fun WeekOverviewContent(
         Spacer(Modifier.height(8.dp))
 
         val forecastItems = uiState.forecast
-        // 7天全显示，只占满右半边宽度，左侧留给其他内容
-        val gridCols = minOf(forecastItems.size, 4)
+        // 7天全显示，动态计算列数（1-4列自适应）
+        val numDays = forecastItems.size.coerceIn(1, 7)
+        val gridCols = minOf(numDays, if (isCompact) 3 else 4)
         val rows = forecastItems.take(gridCols * 2).chunked(gridCols)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             rows.forEach { rowItems ->
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

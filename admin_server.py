@@ -89,7 +89,7 @@ def sync_to_phone():
         # 方式：发送自定义广播，App 接收后重新加载 AppSettings
         subprocess.run([
             "adb", "shell", "am", "broadcast", "-a",
-            "com.example.weatherclock.CONFIG_UPDATE",
+            "com.desk.weather.CONFIG_UPDATE",
             "-p", "com.desk.weather"
         ], check=False, capture_output=True, timeout=10)
 

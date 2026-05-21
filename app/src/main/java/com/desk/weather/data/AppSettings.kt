@@ -87,6 +87,27 @@ object AppSettings {
         return try { json.decodeFromString<LayoutConfig>(str) } catch (e: Exception) { defaultLayoutConfig() }
     }
 
+    /** 若 /sdcard/weatherclock_admin.json 存在，则用其 visual_style 覆盖布局配置 */
+    fun loadLayoutConfigWithAdminOverride(context: Context): LayoutConfig {
+        val default = loadLayoutConfig(context)
+        return try {
+            val file = java.io.File("/sdcard/weatherclock_admin.json")
+            if (file.exists()) {
+                val text = file.readText()
+                // 简单提取 "visual_style":"VALUE"
+                val regex = Regex(""""visual_style"\s*:\s*"(\w+)"""")
+                val match = regex.find(text)
+                val styleName = match?.groupValues?.get(1)
+                val style = styleName?.let {
+                    VisualStyle.entries.find { v -> v.name == it }
+                } ?: return default
+                default.copy(visualStyle = style)
+            } else default
+        } catch (e: Exception) {
+            default
+        }
+    }
+
     private fun defaultLayoutConfig(): LayoutConfig = LayoutConfig(
         version = 1,
         zones = listOf(
