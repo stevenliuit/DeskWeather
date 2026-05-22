@@ -113,7 +113,8 @@ data class ThemeColors(
 enum class LayoutType {
     TODAY_DETAIL,  // 今日详情：当天大卡片 + 七日预报(从明天开始)
     WEEK_OVERVIEW,  // 七日总览：当前天气中等 + 全部7天预报(含今天)
-    MINIMAL_CLOCK   // 极简时钟：时钟超大 + 天气小 + 七日预报(从明天开始)
+    MINIMAL_CLOCK,  // 极简时钟：时钟超大 + 天气小 + 七日预报(从明天开始)
+    CUSTOM_FLOW,    // 随意布局：组件自由排列，DragFreeFlow风格
 }
 
 // 视觉比重布局样式（只有3种，对应3种结构化布局）
@@ -124,7 +125,8 @@ enum class VisualStyle(
 ) {
     TODAY_DETAIL("今日详情", "当天大卡片 · 七日预报从明天开始", LayoutType.TODAY_DETAIL),
     WEEK_OVERVIEW("七日总览", "当前天气中等 · 完整7天预报", LayoutType.WEEK_OVERVIEW),
-    MINIMAL_CLOCK("极简时钟", "时钟超大 · 天气小信息少", LayoutType.MINIMAL_CLOCK)
+    MINIMAL_CLOCK("极简时钟", "时钟超大 · 天气小信息少", LayoutType.MINIMAL_CLOCK),
+    CUSTOM_FLOW("随意布局", "组件自由排列 · 想怎么摆就怎么摆", LayoutType.CUSTOM_FLOW),
 }
 
 // 自定义区块类型

@@ -344,36 +344,43 @@ private fun SingleColumnLayout(
         LayoutType.TODAY_DETAIL -> if (isCompact) 48.sp else if (isMedium) 58.sp else 72.sp
         LayoutType.WEEK_OVERVIEW -> if (isCompact) 40.sp else if (isMedium) 50.sp else 64.sp
         LayoutType.MINIMAL_CLOCK -> if (isCompact) 72.sp else if (isMedium) 88.sp else 112.sp
+        LayoutType.CUSTOM_FLOW -> if (isCompact) 36.sp else if (isMedium) 44.sp else 56.sp
     }
     val dateSize = when (layoutType) {
         LayoutType.TODAY_DETAIL -> if (isCompact) 18.sp else if (isMedium) 22.sp else 28.sp
         LayoutType.WEEK_OVERVIEW -> if (isCompact) 16.sp else if (isMedium) 18.sp else 24.sp
         LayoutType.MINIMAL_CLOCK -> if (isCompact) 14.sp else if (isMedium) 16.sp else 20.sp
+        LayoutType.CUSTOM_FLOW -> if (isCompact) 14.sp else if (isMedium) 16.sp else 20.sp
     }
     val temperatureSize = when (layoutType) {
         LayoutType.TODAY_DETAIL -> if (isCompact) 56.sp else if (isMedium) 72.sp else 96.sp
         LayoutType.WEEK_OVERVIEW -> if (isCompact) 40.sp else if (isMedium) 52.sp else 68.sp
         LayoutType.MINIMAL_CLOCK -> if (isCompact) 32.sp else if (isMedium) 40.sp else 52.sp
+        LayoutType.CUSTOM_FLOW -> if (isCompact) 28.sp else if (isMedium) 34.sp else 44.sp
     }
     val weatherIconSize = when (layoutType) {
         LayoutType.TODAY_DETAIL -> if (isCompact) 64.sp else if (isMedium) 82.sp else 108.sp
         LayoutType.WEEK_OVERVIEW -> if (isCompact) 44.sp else if (isMedium) 56.sp else 72.sp
         LayoutType.MINIMAL_CLOCK -> if (isCompact) 32.sp else if (isMedium) 40.sp else 52.sp
+        LayoutType.CUSTOM_FLOW -> if (isCompact) 40.sp else if (isMedium) 50.sp else 64.sp
     }
     val locationSize = when (layoutType) {
         LayoutType.TODAY_DETAIL -> if (isCompact) 16.sp else if (isMedium) 20.sp else 24.sp
         LayoutType.WEEK_OVERVIEW -> if (isCompact) 14.sp else if (isMedium) 16.sp else 20.sp
         LayoutType.MINIMAL_CLOCK -> if (isCompact) 14.sp else if (isMedium) 16.sp else 18.sp
+        LayoutType.CUSTOM_FLOW -> if (isCompact) 14.sp else if (isMedium) 16.sp else 18.sp
     }
     val spacing = when (layoutType) {
         LayoutType.TODAY_DETAIL -> if (isCompact) 10.dp else 16.dp
         LayoutType.WEEK_OVERVIEW -> if (isCompact) 8.dp else 12.dp
         LayoutType.MINIMAL_CLOCK -> if (isCompact) 6.dp else 10.dp
+        LayoutType.CUSTOM_FLOW -> if (isCompact) 8.dp else 12.dp
     }
     val detailsSpacing = when (layoutType) {
         LayoutType.TODAY_DETAIL -> if (isCompact) 32.dp else 48.dp
         LayoutType.WEEK_OVERVIEW -> if (isCompact) 20.dp else 32.dp
         LayoutType.MINIMAL_CLOCK -> if (isCompact) 16.dp else 24.dp
+        LayoutType.CUSTOM_FLOW -> if (isCompact) 12.dp else 20.dp
     }
 
     var showThemeSheet by remember { mutableStateOf(false) }
@@ -480,6 +487,15 @@ private fun SingleColumnLayout(
                 clockSize = clockSize, dateSize = dateSize,
                 temperatureSize = temperatureSize, weatherIconSize = weatherIconSize,
                 locationSize = locationSize, spacing = spacing,
+                screenWidth = screenWidth,
+                showAirQualitySheet = showAirQualitySheet,
+                onAirQualityClick = { showAirQualitySheet = true },
+                isCompact = isCompact,
+                modifier = Modifier.weight(1f)
+            )
+        } else if (layoutType == LayoutType.CUSTOM_FLOW) {
+            CustomFlowContent(
+                uiState = uiState, colors = colors,
                 screenWidth = screenWidth,
                 showAirQualitySheet = showAirQualitySheet,
                 onAirQualityClick = { showAirQualitySheet = true },
@@ -826,6 +842,7 @@ private fun LayoutEditorScreen(
                     VisualStyle.TODAY_DETAIL -> "今日大卡片 ${if (isCompact) "↑" else "→"} 七日预报（明天起）"
                     VisualStyle.WEEK_OVERVIEW -> "当前天气中等 ${if (isCompact) "↑" else "→"} 七日预报（含今天）"
                     VisualStyle.MINIMAL_CLOCK -> "时钟超大 ${if (isCompact) "↑" else "→"} 天气信息少"
+                    VisualStyle.CUSTOM_FLOW -> "组件自由排列 ${if (isCompact) "↑" else "→"} 随意摆放"
                 }
                 Text("布局结构：$preview", fontSize = 13.sp, color = colors.textSecondary.copy(alpha = 0.8f))
             }
@@ -859,6 +876,7 @@ private fun VisualStyleCard(
                             VisualStyle.TODAY_DETAIL -> Brush.verticalGradient(listOf(colors.accentColor.copy(alpha = 0.5f), colors.accentColor.copy(alpha = 0.2f)))
                             VisualStyle.WEEK_OVERVIEW -> Brush.verticalGradient(listOf(colors.textSecondary.copy(alpha = 0.4f), colors.textPrimary.copy(alpha = 0.2f)))
                             VisualStyle.MINIMAL_CLOCK -> Brush.verticalGradient(listOf(colors.textPrimary.copy(alpha = 0.2f), colors.textSecondary.copy(alpha = 0.4f)))
+                            VisualStyle.CUSTOM_FLOW -> Brush.linearGradient(listOf(Color(0xFF7C4DFF).copy(alpha = 0.6f), Color(0xFF448AFF).copy(alpha = 0.4f)))
                         }
                     ),
                 contentAlignment = Alignment.Center
@@ -868,6 +886,7 @@ private fun VisualStyleCard(
                         VisualStyle.TODAY_DETAIL -> "今日详情"
                         VisualStyle.WEEK_OVERVIEW -> "七日总览"
                         VisualStyle.MINIMAL_CLOCK -> "极简时钟"
+                        VisualStyle.CUSTOM_FLOW -> "随意布局"
                     },
                     fontSize = 14.sp,
                     color = Color.White,
@@ -1141,9 +1160,10 @@ private fun TodayDetailContent(
         Spacer(Modifier.height(8.dp))
 
         val forecastItems = uiState.forecast.drop(1)
-        // 动态列数：窄屏2列，中屏3列，宽屏3列（最多6天=2行）
-        val gridCols = if (isCompact) 2 else 3
-        // 不要take(6)，而是显示所有可用天数（最多gridCols*2个）
+        // 动态列数：窄屏2-3列，宽屏3-4列，显示所有可用天数（最多6天=2行）
+        val numDays = forecastItems.size.coerceIn(1, 6)
+        val gridCols = if (isCompact) minOf(numDays, 2) else minOf(numDays, 4)
+        // 显示所有可用天数，不做take(6)限制
         val rows = forecastItems.chunked(gridCols)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             rows.forEachIndexed { rowIdx, rowItems ->
@@ -1360,8 +1380,9 @@ private fun MinimalClockContent(
         Spacer(Modifier.height(8.dp))
 
         val forecastItems = uiState.forecast.drop(1)
-        // 动态列数：窄屏2列，中屏3列，宽屏3列（最多6天=2行）
-        val gridCols = if (isCompact) 2 else 3
+        // 动态列数：窄屏2-3列，宽屏3-4列，显示所有可用天数
+        val numDays = forecastItems.size.coerceIn(1, 6)
+        val gridCols = if (isCompact) minOf(numDays, 2) else minOf(numDays, 4)
         val rows = forecastItems.chunked(gridCols)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             rows.forEach { rowItems ->
@@ -1379,6 +1400,201 @@ private fun MinimalClockContent(
                 }
             }
         }
+    }
+}
+
+// ============================================================
+// 布局 D：随意布局（自由流动排列）
+// 组件以流式布局自动排列，换行逻辑由组件宽度决定
+// ============================================================
+@Composable
+private fun CustomFlowContent(
+    uiState: MainUiState, colors: ThemeColors,
+    screenWidth: Dp,
+    showAirQualitySheet: Boolean,
+    onAirQualityClick: () -> Unit,
+    isCompact: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    // 组件间距
+    val gapH = 8.dp
+    val gapV = 12.dp
+
+    // 预定义各组件的理想宽度（窄屏压缩）
+    val clockCardWidth = if (isCompact) screenWidth * 0.55f else screenWidth * 0.60f
+    val weatherCardWidth = if (isCompact) screenWidth * 0.38f else screenWidth * 0.36f
+    val detailsCardWidth = if (isCompact) screenWidth * 0.48f else screenWidth * 0.50f
+    val forecastCardWidth = screenWidth * 0.95f
+    val aqiCardWidth = if (isCompact) screenWidth * 0.48f else screenWidth * 0.40f
+    val locationWidth = screenWidth * 0.70f
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(gapV)
+    ) {
+        // ── 位置 ──
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(gapH),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FlowWidget(width = locationWidth) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("📍", fontSize = 16.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Text(uiState.locationName, fontSize = 16.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
+                    if (uiState.locationSource.isNotEmpty()) {
+                        Spacer(Modifier.width(8.dp))
+                        Surface(color = colors.cardHighlight, shape = RoundedCornerShape(8.dp)) {
+                            Text(uiState.locationSource, fontSize = 10.sp, color = colors.textSecondary.copy(alpha = 0.8f), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── 第一行：时钟 + 天气 ──
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(gapH),
+            verticalAlignment = Alignment.Top
+        ) {
+            // 时钟卡片
+            FlowWidget(width = clockCardWidth) {
+                Surface(
+                    color = colors.cardHighlight,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        if (uiState.currentDate.isNotEmpty()) {
+                            Text(uiState.currentDate, fontSize = 14.sp, color = colors.textSecondary)
+                            Spacer(Modifier.height(4.dp))
+                        }
+                        Text(uiState.currentTime, fontSize = if (isCompact) 36.sp else 48.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+                        if (uiState.timezoneDisplay.isNotEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(uiState.timezoneDisplay, fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.6f))
+                        }
+                    }
+                }
+            }
+
+            // 天气卡片
+            FlowWidget(width = weatherCardWidth) {
+                Surface(
+                    color = colors.accentColor.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(uiState.weatherIcon, fontSize = if (isCompact) 40.sp else 56.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(uiState.temperature, fontSize = if (isCompact) 28.sp else 36.sp, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                                Text(uiState.weatherDescription, fontSize = 12.sp, color = colors.textSecondary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── 第二行：详情 + 空气质量 ──
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(gapH),
+            verticalAlignment = Alignment.Top
+        ) {
+            // 详情卡片
+            FlowWidget(width = detailsCardWidth) {
+                Surface(
+                    color = colors.cardHighlight,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        WeatherDetailItem(emoji = "💧", label = "湿度", value = uiState.humidity, colors = colors)
+                        WeatherDetailItem(emoji = "💨", label = "风速", value = uiState.windSpeed, colors = colors)
+                        WeatherDetailItem(emoji = "🌡️", label = "体感", value = uiState.feelsLike.replace("体感 ", ""), colors = colors)
+                    }
+                }
+            }
+
+            // 空气质量卡片
+            if (uiState.airQuality != null) {
+                FlowWidget(width = aqiCardWidth) {
+                    Surface(
+                        color = colors.cardHighlight,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth().clickable { onAirQualityClick() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🫁", fontSize = 24.sp)
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text("空气质量", fontSize = 11.sp, color = colors.textSecondary)
+                                Text(uiState.airQuality!!.value, fontSize = 18.sp, color = Color(uiState.airQuality!!.color), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── 第三行：七日预报 ──
+        FlowWidget(width = forecastCardWidth) {
+            Surface(
+                color = colors.cardHighlight,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("📅", fontSize = 13.sp)
+                        Spacer(Modifier.width(6.dp))
+                        Text("七日预报", fontSize = 13.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    // 横向滚动显示所有7天预报
+                    val forecastItems = uiState.forecast
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        forecastItems.forEachIndexed { idx, forecast ->
+                            ForecastCard(
+                                item = forecast,
+                                isToday = idx == 0,
+                                colors = colors,
+                                modifier = Modifier.width(if (isCompact) 72.dp else 80.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Flow布局中的通用Widget包装器 */
+@Composable
+private fun FlowWidget(
+    width: Dp,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Box(modifier = modifier.width(width)) {
+        content()
     }
 }
 

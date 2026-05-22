@@ -445,6 +445,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
             "今日详情" -> VisualStyle.TODAY_DETAIL
             "七日总览" -> VisualStyle.WEEK_OVERVIEW
             "极简时钟" -> VisualStyle.MINIMAL_CLOCK
+            "随意布局" -> VisualStyle.CUSTOM_FLOW
             else -> return
         }
         setVisualStyle(style)
